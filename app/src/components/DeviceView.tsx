@@ -15,6 +15,7 @@ import {
   Disc,
   Users,
   Braces,
+  AlarmClock,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
@@ -29,12 +30,14 @@ import { KvmTab } from "./tabs/KvmTab";
 import { IderTab } from "./tabs/IderTab";
 import { AccountsTab } from "./tabs/AccountsTab";
 import { WsmanTab } from "./tabs/WsmanTab";
+import { AlarmsTab } from "./tabs/AlarmsTab";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "hardware", label: "Hardware", icon: Cpu },
   { id: "network", label: "Network", icon: Network },
   { id: "accounts", label: "Accounts", icon: Users },
+  { id: "alarms", label: "Wake", icon: AlarmClock },
   { id: "events", label: "Event Log", icon: ScrollText },
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
   { id: "serial", label: "Serial", icon: TerminalSquare },
@@ -191,6 +194,7 @@ export function DeviceView({ id }: { id: string }) {
         {tab === "hardware" && <HardwareTab id={id} />}
         {tab === "network" && <NetworkTab id={id} />}
         {tab === "accounts" && <AccountsTab id={id} />}
+        {tab === "alarms" && <AlarmsTab id={id} />}
         {tab === "events" && <EventLogTab id={id} />}
         {tab === "audit" && <AuditLogTab id={id} />}
         {tab === "serial" && <SerialTab id={id} />}

@@ -196,6 +196,41 @@ func (s *Server) handleAccountAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s *Server) handleAlarms(w http.ResponseWriter, r *http.Request) {
+	alarms, err := sessionFrom(r).Alarms()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, alarms)
+}
+
+func (s *Server) handleAddAlarm(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name               string `json:"name"`
+		StartTime          string `json:"startTime"`
+		IntervalMinutes    int    `json:"intervalMinutes"`
+		DeleteOnCompletion bool   `json:"deleteOnCompletion"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddAlarm(body.Name, body.StartTime, body.IntervalMinutes, body.DeleteOnCompletion); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDeleteAlarm(w http.ResponseWriter, r *http.Request) {
+	if err := sessionFrom(r).DeleteAlarm(chi.URLParam(r, "instanceId")); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleBrowseClasses(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, sessionFrom(r).BrowseClasses())
 }

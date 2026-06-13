@@ -113,6 +113,14 @@ export interface Account {
   enabled: boolean;
 }
 
+export interface Alarm {
+  instanceId: string;
+  name: string;
+  startTime: string;
+  interval: string;
+  deleteOnCompletion: boolean;
+}
+
 export interface IderStats {
   connected: boolean;
   bytesToAmt: number;
@@ -191,6 +199,15 @@ export const api = {
   browseClasses: (id: string) => req<string[]>(`/api/devices/${id}/browse/classes`),
   browse: (id: string, className: string) =>
     req<unknown>(`/api/devices/${id}/browse?class=${encodeURIComponent(className)}`),
+  alarms: (id: string) => req<Alarm[]>(`/api/devices/${id}/alarms`),
+  addAlarm: (
+    id: string,
+    body: { name: string; startTime: string; intervalMinutes: number; deleteOnCompletion: boolean },
+  ) => req<{ ok: boolean }>(`/api/devices/${id}/alarms`, { method: "POST", body: JSON.stringify(body) }),
+  deleteAlarm: (id: string, instanceId: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/alarms/${encodeURIComponent(instanceId)}`, {
+      method: "DELETE",
+    }),
   accounts: (id: string) => req<Account[]>(`/api/devices/${id}/accounts`),
   addAccount: (
     id: string,
