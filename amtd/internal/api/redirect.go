@@ -23,6 +23,14 @@ var upgrader = websocket.Upgrader{
 func (s *Server) handleSOL(w http.ResponseWriter, r *http.Request) {
 	sess := sessionFrom(r)
 
+	// SOL is gated by the AMT redirection service, which is disabled by default
+	// on many platforms. Enable it first; best-effort.
+	if err := sess.EnableRedirection(); err != nil {
+		slog.Warn("enable redirection (SOL) failed (continuing)", "err", err.Error())
+	} else {
+		slog.Info("redirection (SOL/IDE-R) enabled")
+	}
+
 	sol, err := redirect.StartSOL(sess.RedirectionTarget())
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err.Error())

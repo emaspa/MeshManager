@@ -61,6 +61,7 @@ func StartSOL(t Target) (*SOL, error) {
 		c.Close()
 		return nil, err
 	}
+	c.ClearDeadline() // entering continuous streaming
 
 	s := &SOL{conn: c, out: make(chan []byte, 64), done: make(chan struct{})}
 	go s.readLoop()

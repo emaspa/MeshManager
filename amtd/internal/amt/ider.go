@@ -22,6 +22,9 @@ func (s *Session) StartIDER(isoPath string, bootNow bool) error {
 	}
 	s.iderMu.Unlock()
 
+	// IDE-R is gated by the AMT redirection service (often disabled by default).
+	_ = s.EnableRedirection()
+
 	sess, err := redirect.StartIDER(s.RedirectionTarget(), isoPath)
 	if err != nil {
 		return err

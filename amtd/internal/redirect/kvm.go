@@ -34,6 +34,7 @@ func StartKVM(t Target) (*Conn, error) {
 		case 0x41:
 			// RFB stream begins immediately after; any bytes already pulled
 			// into the bufio reader are preserved for the caller.
+			c.ClearDeadline() // entering continuous streaming
 			return c, nil
 		case 0xF0:
 			continue

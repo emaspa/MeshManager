@@ -78,6 +78,11 @@ func Connect(t Target, proto Protocol) (*Conn, error) {
 		return nil, fmt.Errorf("dial redirection %s: %w", addr, err)
 	}
 
+	// Bound the handshake/negotiation phase so a device that accepts the
+	// connection but never opens the channel (e.g. SOL disabled) fails fast
+	// instead of hanging the HTTP request forever. Cleared once streaming.
+	_ = nc.SetDeadline(time.Now().Add(20 * time.Second))
+
 	c := &Conn{net: nc, r: bufio.NewReader(nc), seq: 1, target: t}
 	if err := c.handshake(proto); err != nil {
 		nc.Close()
@@ -88,6 +93,10 @@ func Connect(t Target, proto Protocol) (*Conn, error) {
 
 // Close terminates the redirection connection.
 func (c *Conn) Close() error { return c.net.Close() }
+
+// ClearDeadline removes the handshake read/write deadline once the session is
+// fully open and entering its continuous streaming phase.
+func (c *Conn) ClearDeadline() { _ = c.net.SetDeadline(time.Time{}) }
 
 // nextSeq returns and increments the AMT message sequence counter.
 func (c *Conn) nextSeq() uint32 {

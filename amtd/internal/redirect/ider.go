@@ -71,6 +71,7 @@ func StartIDER(t Target, isoPath string) (*IDER, error) {
 		iso.Close()
 		return nil, err
 	}
+	c.ClearDeadline() // IDE-R streams continuously; engine has its own keepalive
 
 	s := &IDER{
 		conn:    c,
