@@ -103,7 +103,7 @@ export function KvmTab({ id }: { id: string }) {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center gap-3">
-        <MonitorSmartphone className="h-5 w-5 text-[--color-accent]" />
+        <MonitorSmartphone className="h-5 w-5 text-(--color-accent)" />
         <span className="font-medium">Remote Desktop (KVM)</span>
         <Badge tone={tone}>{state}</Badge>
         <div className="ml-auto flex items-center gap-2">
@@ -113,7 +113,7 @@ export function KvmTab({ id }: { id: string }) {
                 value={colorDepth}
                 onChange={(e) => setColorDepth(e.target.value as ColorDepth)}
                 title="Color depth"
-                className="rounded-md border border-[--color-border] bg-[--color-bg] px-2 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+                className="rounded-md border border-(--color-border) bg-(--color-bg) px-2 py-1.5 text-sm outline-none focus:border-(--color-accent)"
               >
                 {COLOR_DEPTHS.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -123,7 +123,7 @@ export function KvmTab({ id }: { id: string }) {
                 value={compression}
                 onChange={(e) => setCompression(e.target.value as Compression)}
                 title="Compression"
-                className="rounded-md border border-[--color-border] bg-[--color-bg] px-2 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+                className="rounded-md border border-(--color-border) bg-(--color-bg) px-2 py-1.5 text-sm outline-none focus:border-(--color-accent)"
               >
                 {COMPRESSIONS.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -148,11 +148,11 @@ export function KvmTab({ id }: { id: string }) {
         </div>
       </div>
       {error && (
-        <div className="mb-3 rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
+        <div className="mb-3 rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
           {error}
         </div>
       )}
-      <div className="flex flex-1 items-center justify-center overflow-auto rounded-lg border border-[--color-border] bg-black">
+      <div className="flex flex-1 items-center justify-center overflow-auto rounded-lg border border-(--color-border) bg-black">
         <canvas
           ref={canvasRef}
           width={640}
@@ -183,7 +183,7 @@ export function KvmTab({ id }: { id: string }) {
         />
       </div>
       {state === "running" && (
-        <p className="mt-2 text-center text-xs text-[--color-muted]">
+        <p className="mt-2 text-center text-xs text-(--color-muted)">
           Click the screen to capture keyboard &amp; mouse.
         </p>
       )}

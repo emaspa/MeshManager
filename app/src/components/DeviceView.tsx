@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Power,
   RotateCcw,
-  Trash2,
+  Unplug,
   ChevronDown,
   Cpu,
   ScrollText,
@@ -103,7 +103,7 @@ export function DeviceView({ id }: { id: string }) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-[--color-border] px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-(--color-border) px-5 py-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold">{device?.name || device?.host}</h1>
@@ -114,7 +114,7 @@ export function DeviceView({ id }: { id: string }) {
                 <Badge tone="bad">{power.data.stateName}</Badge>
               ))}
           </div>
-          <div className="text-xs text-[--color-muted]">
+          <div className="text-xs text-(--color-muted)">
             {device?.host}:{device?.port} · {device?.username}
           </div>
         </div>
@@ -126,19 +126,19 @@ export function DeviceView({ id }: { id: string }) {
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
           {menuOpen && (
-            <div className="absolute right-0 z-20 mt-1 w-52 rounded-md border border-[--color-border] bg-[--color-panel-2] py-1 shadow-xl">
+            <div className="absolute right-0 z-20 mt-1 w-52 rounded-md border border-(--color-border) bg-(--color-panel-2) py-1 shadow-xl">
               {POWER_MENU.map((m) => (
                 <button
                   key={m.action}
                   onClick={() => powerAction.mutate(m.action)}
                   disabled={powerAction.isPending}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-[--color-border] disabled:opacity-40"
+                  className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-(--color-border) disabled:opacity-40"
                 >
                   {m.label}
                 </button>
               ))}
-              <div className="my-1 border-t border-[--color-border]" />
-              <div className="px-3 py-1 text-xs uppercase tracking-wide text-[--color-muted]">
+              <div className="my-1 border-t border-(--color-border)" />
+              <div className="px-3 py-1 text-xs uppercase tracking-wide text-(--color-muted)">
                 Boot to
               </div>
               {BOOT_MENU.map((m) => (
@@ -146,7 +146,7 @@ export function DeviceView({ id }: { id: string }) {
                   key={m.device}
                   onClick={() => bootAction.mutate(m.device)}
                   disabled={bootAction.isPending}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-[--color-border] disabled:opacity-40"
+                  className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-(--color-border) disabled:opacity-40"
                 >
                   {m.label}
                 </button>
@@ -158,13 +158,13 @@ export function DeviceView({ id }: { id: string }) {
         <Button onClick={() => power.refetch()} title="Refresh power state">
           <RotateCcw className="h-4 w-4" />
         </Button>
-        <Button variant="danger" onClick={() => disconnect.mutate()} title="Disconnect">
-          <Trash2 className="h-4 w-4" />
+        <Button onClick={() => disconnect.mutate()} title="Disconnect">
+          <Unplug className="h-4 w-4" /> Disconnect
         </Button>
       </header>
 
       {/* Tabs */}
-      <nav className="flex gap-1 border-b border-[--color-border] px-3">
+      <nav className="flex gap-1 border-b border-(--color-border) px-3">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
@@ -174,8 +174,8 @@ export function DeviceView({ id }: { id: string }) {
               className={
                 "flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors " +
                 (tab === t.id
-                  ? "border-[--color-accent] text-[--color-text]"
-                  : "border-transparent text-[--color-muted] hover:text-[--color-text]")
+                  ? "border-(--color-accent) text-(--color-text)"
+                  : "border-transparent text-(--color-muted) hover:text-(--color-text)")
               }
             >
               <Icon className="h-4 w-4" />

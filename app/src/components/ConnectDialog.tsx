@@ -3,41 +3,77 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { api, ApiError, type ConnectParams } from "../lib/api";
 import { useUi } from "../store";
+import { useBookmarks } from "../lib/bookmarks";
 import { Button, Field, Input } from "../lib/ui";
 
 export function ConnectDialog() {
   const closeConnect = useUi((s) => s.closeConnect);
   const prefill = useUi((s) => s.connectPrefill);
   const select = useUi((s) => s.select);
+  const bookmarks = useBookmarks();
   const qc = useQueryClient();
 
-  const [form, setForm] = useState<ConnectParams>({
+  const editing = !!prefill?.edit;
+
+  const [form, setForm] = useState({
+    name: prefill?.name ?? "",
     host: prefill?.host ?? "",
-    port: prefill?.port,
-    username: "admin",
-    password: "",
+    port: prefill?.port as number | undefined,
+    username: prefill?.username ?? "admin",
+    password: prefill?.password ?? "",
     tls: prefill?.tls ?? false,
-    insecure: true,
-    name: "",
+    insecure: prefill?.insecure ?? true,
   });
+  const [remember, setRemember] = useState(!!prefill?.password);
+
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  function saveBookmark() {
+    bookmarks.upsert({
+      name: form.name,
+      host: form.host,
+      port: form.port,
+      tls: form.tls,
+      insecure: form.insecure,
+      username: form.username,
+      password: remember ? form.password : undefined,
+    });
+  }
+
+  // Edit mode just persists the bookmark (no connect).
+  function onSave() {
+    if (prefill?.bookmarkId) {
+      bookmarks.update(prefill.bookmarkId, {
+        name: form.name,
+        host: form.host,
+        port: form.port,
+        tls: form.tls,
+        insecure: form.insecure,
+        username: form.username,
+        password: remember ? form.password : undefined,
+      });
+    } else {
+      saveBookmark();
+    }
+    closeConnect();
+  }
 
   const connect = useMutation({
-    mutationFn: () => api.connect(form),
+    mutationFn: () => api.connect(form as ConnectParams),
     onSuccess: (device) => {
+      saveBookmark(); // persist the connection as a bookmark
       qc.invalidateQueries({ queryKey: ["devices"] });
       select(device.id);
       closeConnect();
     },
   });
 
-  const set = <K extends keyof ConnectParams>(k: K, v: ConnectParams[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[420px] rounded-xl border border-[--color-border] bg-[--color-panel] p-5 shadow-2xl">
+      <div className="w-[420px] rounded-xl border border-(--color-border) bg-(--color-panel) p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Add AMT Device</h2>
+          <h2 className="text-lg font-semibold">{editing ? "Edit Bookmark" : "Add Device"}</h2>
           <Button variant="ghost" className="px-1.5 py-1" onClick={() => closeConnect()}>
             <X className="h-4 w-4" />
           </Button>
@@ -47,7 +83,8 @@ export function ConnectDialog() {
           className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            connect.mutate();
+            if (editing) onSave();
+            else connect.mutate();
           }}
         >
           <Field label="Name (optional)">
@@ -83,13 +120,9 @@ export function ConnectDialog() {
               />
             </Field>
           </div>
-          <div className="flex gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm">
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.tls}
-                onChange={(e) => set("tls", e.target.checked)}
-              />
+              <input type="checkbox" checked={form.tls} onChange={(e) => set("tls", e.target.checked)} />
               Use TLS
             </label>
             <label className="flex items-center gap-2">
@@ -100,13 +133,15 @@ export function ConnectDialog() {
               />
               Allow self-signed
             </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              Remember password
+            </label>
           </div>
 
           {connect.isError && (
-            <div className="rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
-              {connect.error instanceof ApiError
-                ? connect.error.message
-                : "Connection failed"}
+            <div className="rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
+              {connect.error instanceof ApiError ? connect.error.message : "Connection failed"}
             </div>
           )}
 
@@ -114,9 +149,13 @@ export function ConnectDialog() {
             <Button type="button" onClick={() => closeConnect()}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={connect.isPending}>
-              {connect.isPending ? "Connecting…" : "Connect"}
-            </Button>
+            {editing ? (
+              <Button type="submit" variant="primary">Save</Button>
+            ) : (
+              <Button type="submit" variant="primary" disabled={connect.isPending}>
+                {connect.isPending ? "Connecting…" : "Connect"}
+              </Button>
+            )}
           </div>
         </form>
       </div>

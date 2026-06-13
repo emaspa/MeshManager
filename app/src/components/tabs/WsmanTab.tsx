@@ -20,12 +20,12 @@ export function WsmanTab({ id }: { id: string }) {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center gap-2">
-        <Braces className="h-5 w-5 text-[--color-accent]" />
+        <Braces className="h-5 w-5 text-(--color-accent)" />
         <span className="font-medium">WS-MAN Browser</span>
         <select
           value={cls}
           onChange={(e) => setCls(e.target.value)}
-          className="ml-2 rounded-md border border-[--color-border] bg-[--color-bg] px-2 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+          className="ml-2 rounded-md border border-(--color-border) bg-(--color-bg) px-2 py-1.5 text-sm outline-none focus:border-(--color-accent)"
         >
           <option value="">Select a class…</option>
           {classes.data?.map((c) => (
@@ -39,11 +39,11 @@ export function WsmanTab({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto rounded-lg border border-[--color-border] bg-[--color-bg] p-3">
-        {!cls && <p className="text-sm text-[--color-muted]">Pick a class to enumerate it.</p>}
+      <div className="flex-1 overflow-auto rounded-lg border border-(--color-border) bg-(--color-bg) p-3">
+        {!cls && <p className="text-sm text-(--color-muted)">Pick a class to enumerate it.</p>}
         {cls && result.isLoading && <div className="flex justify-center py-8"><Spinner /></div>}
         {cls && result.isError && (
-          <p className="text-[--color-bad]">{(result.error as Error).message}</p>
+          <p className="text-(--color-bad)">{(result.error as Error).message}</p>
         )}
         {cls && result.data !== undefined && !result.isLoading && (
           <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">

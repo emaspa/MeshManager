@@ -1,9 +1,15 @@
 import { create } from "zustand";
 
 export interface ConnectPrefill {
+  bookmarkId?: string; // set when editing/connecting an existing bookmark
+  edit?: boolean; // true = manage bookmark (Save), false/undefined = connect
+  name?: string;
   host?: string;
   port?: number;
   tls?: boolean;
+  insecure?: boolean;
+  username?: string;
+  password?: string;
 }
 
 interface UiState {

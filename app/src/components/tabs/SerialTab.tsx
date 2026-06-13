@@ -85,7 +85,7 @@ export function SerialTab({ id }: { id: string }) {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center gap-3">
-        <TerminalSquare className="h-5 w-5 text-[--color-accent]" />
+        <TerminalSquare className="h-5 w-5 text-(--color-accent)" />
         <span className="font-medium">Serial-over-LAN</span>
         <Badge tone={tone}>{state}</Badge>
         <div className="ml-auto flex gap-2">
@@ -101,13 +101,13 @@ export function SerialTab({ id }: { id: string }) {
         </div>
       </div>
       {error && (
-        <div className="mb-3 rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
+        <div className="mb-3 rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
           {error}
         </div>
       )}
       <div
         ref={mountRef}
-        className="flex-1 overflow-hidden rounded-lg border border-[--color-border] bg-[#0b0e14] p-2"
+        className="flex-1 overflow-hidden rounded-lg border border-(--color-border) bg-[#0b0e14] p-2"
       />
     </div>
   );

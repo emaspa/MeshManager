@@ -44,11 +44,11 @@ export function IderTab({ id }: { id: string }) {
     <div className="max-w-2xl space-y-4">
       <Card>
         <div className="mb-3 flex items-center gap-2">
-          <Disc className="h-5 w-5 text-[--color-accent]" />
+          <Disc className="h-5 w-5 text-(--color-accent)" />
           <h3 className="font-medium">IDE-R — Boot from ISO</h3>
           {active && <Badge tone="good">mounted</Badge>}
         </div>
-        <p className="mb-4 text-sm text-[--color-muted]">
+        <p className="mb-4 text-sm text-(--color-muted)">
           Serves a local ISO to the device as a virtual CD-ROM over IDE redirection. “Mount &amp;
           Boot” also sets the one-time boot device and resets the machine.
         </p>
@@ -91,7 +91,7 @@ export function IderTab({ id }: { id: string }) {
         </div>
 
         {start.isError && (
-          <div className="mt-3 rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
+          <div className="mt-3 rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
             {start.error instanceof ApiError ? start.error.message : "Failed to start IDE-R"}
           </div>
         )}
@@ -106,7 +106,7 @@ export function IderTab({ id }: { id: string }) {
             <Stat label="Sent to device" value={fmtBytes(stats.bytesToAmt)} />
           </div>
           {stats.error && (
-            <div className="mt-3 rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
+            <div className="mt-3 rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
               {stats.error}
             </div>
           )}
@@ -119,7 +119,7 @@ export function IderTab({ id }: { id: string }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-[--color-muted]">{label}</span>
+      <span className="text-xs text-(--color-muted)">{label}</span>
       <span className="font-mono text-base">{value}</span>
     </div>
   );

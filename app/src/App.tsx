@@ -27,9 +27,9 @@ export default function App() {
 
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center text-[--color-muted]">
+    <div className="flex h-full flex-col items-center justify-center text-center text-(--color-muted)">
       <div className="text-5xl">🖧</div>
-      <h2 className="mt-4 text-lg font-medium text-[--color-text]">No device selected</h2>
+      <h2 className="mt-4 text-lg font-medium text-(--color-text)">No device selected</h2>
       <p className="mt-1 max-w-sm text-sm">
         Add an Intel AMT / vPro device from the sidebar to view power state, hardware inventory,
         logs, and open a remote session.

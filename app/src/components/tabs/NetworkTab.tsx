@@ -7,9 +7,9 @@ export function NetworkTab({ id }: { id: string }) {
 
   if (net.isLoading)
     return <div className="flex h-40 items-center justify-center"><Spinner /></div>;
-  if (net.isError) return <p className="text-[--color-bad]">{(net.error as Error).message}</p>;
+  if (net.isError) return <p className="text-(--color-bad)">{(net.error as Error).message}</p>;
   if (!net.data?.length)
-    return <p className="text-sm text-[--color-muted]">No network interfaces reported.</p>;
+    return <p className="text-sm text-(--color-muted)">No network interfaces reported.</p>;
 
   return (
     <div className="space-y-4">
@@ -38,7 +38,7 @@ export function NetworkTab({ id }: { id: string }) {
 function KV({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-[--color-muted]">{k}</span>
+      <span className="text-xs text-(--color-muted)">{k}</span>
       <span className="font-mono">{v || "—"}</span>
     </div>
   );

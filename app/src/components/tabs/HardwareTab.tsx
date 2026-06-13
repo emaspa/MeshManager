@@ -8,7 +8,7 @@ export function HardwareTab({ id }: { id: string }) {
   if (hw.isLoading)
     return <div className="flex h-40 items-center justify-center"><Spinner /></div>;
   if (hw.isError)
-    return <p className="text-[--color-bad]">{(hw.error as Error).message}</p>;
+    return <p className="text-(--color-bad)">{(hw.error as Error).message}</p>;
 
   const d = hw.data!;
   return (
@@ -59,7 +59,7 @@ export function HardwareTab({ id }: { id: string }) {
 function KV({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-[--color-muted]">{k}</span>
+      <span className="text-xs text-(--color-muted)">{k}</span>
       <span className="font-mono">{v || "—"}</span>
     </div>
   );
@@ -67,11 +67,11 @@ function KV({ k, v }: { k: string; v: string }) {
 
 function Table({ head, rows }: { head: string[]; rows: string[][] }) {
   if (rows.length === 0)
-    return <p className="text-sm text-[--color-muted]">No data reported.</p>;
+    return <p className="text-sm text-(--color-muted)">No data reported.</p>;
   return (
     <table className="w-full text-left text-sm">
       <thead>
-        <tr className="text-xs uppercase text-[--color-muted]">
+        <tr className="text-xs uppercase text-(--color-muted)">
           {head.map((h) => (
             <th key={h} className="pb-2 pr-4 font-medium">{h}</th>
           ))}
@@ -79,7 +79,7 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
       </thead>
       <tbody className="font-mono">
         {rows.map((r, i) => (
-          <tr key={i} className="border-t border-[--color-border]">
+          <tr key={i} className="border-t border-(--color-border)">
             {r.map((c, j) => (
               <td key={j} className="py-1.5 pr-4">{c || "—"}</td>
             ))}

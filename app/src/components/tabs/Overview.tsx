@@ -7,7 +7,7 @@ export function Overview({ id }: { id: string }) {
 
   if (info.isLoading) return <Centered><Spinner /></Centered>;
   if (info.isError)
-    return <Centered><span className="text-[--color-bad]">{(info.error as Error).message}</span></Centered>;
+    return <Centered><span className="text-(--color-bad)">{(info.error as Error).message}</span></Centered>;
 
   const d = info.data!;
   const rows: [string, string][] = [
@@ -27,7 +27,7 @@ export function Overview({ id }: { id: string }) {
         <dl className="space-y-2 text-sm">
           {rows.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4">
-              <dt className="text-[--color-muted]">{k}</dt>
+              <dt className="text-(--color-muted)">{k}</dt>
               <dd className="truncate text-right font-mono">{v}</dd>
             </div>
           ))}
@@ -37,12 +37,12 @@ export function Overview({ id }: { id: string }) {
       <Card>
         <h3 className="mb-3 font-medium">Firmware Versions</h3>
         {Object.keys(d.versions).length === 0 ? (
-          <p className="text-sm text-[--color-muted]">No version data reported.</p>
+          <p className="text-sm text-(--color-muted)">No version data reported.</p>
         ) : (
           <dl className="space-y-2 text-sm">
             {Object.entries(d.versions).map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4">
-                <dt className="text-[--color-muted]">{k}</dt>
+                <dt className="text-(--color-muted)">{k}</dt>
                 <dd className="text-right font-mono">{v}</dd>
               </div>
             ))}

@@ -73,15 +73,15 @@ export function AccountsTab({ id }: { id: string }) {
         </div>
         {accounts.isLoading && <div className="flex justify-center py-6"><Spinner /></div>}
         {accounts.isError && (
-          <p className="text-[--color-bad]">{(accounts.error as Error).message}</p>
+          <p className="text-(--color-bad)">{(accounts.error as Error).message}</p>
         )}
         {accounts.data?.length === 0 && (
-          <p className="text-sm text-[--color-muted]">No user accounts.</p>
+          <p className="text-sm text-(--color-muted)">No user accounts.</p>
         )}
         {accounts.data && accounts.data.length > 0 && (
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs uppercase text-[--color-muted]">
+              <tr className="text-xs uppercase text-(--color-muted)">
                 <th className="pb-2 pr-4 font-medium">User</th>
                 <th className="pb-2 pr-4 font-medium">Access</th>
                 <th className="pb-2 pr-4 font-medium">Realms</th>
@@ -91,7 +91,7 @@ export function AccountsTab({ id }: { id: string }) {
             </thead>
             <tbody>
               {accounts.data.map((a) => (
-                <tr key={a.handle} className="border-t border-[--color-border] align-top">
+                <tr key={a.handle} className="border-t border-(--color-border) align-top">
                   <td className="py-2 pr-4 font-mono">{a.username || `#${a.handle}`}</td>
                   <td className="py-2 pr-4">
                     {ACCESS.find((x) => x.value === a.accessPermission)?.label ?? a.accessPermission}
@@ -116,7 +116,7 @@ export function AccountsTab({ id }: { id: string }) {
                   <td className="py-2 pr-4">
                     <Button
                       variant="ghost"
-                      className="px-1.5 py-1 text-[--color-bad]"
+                      className="px-1.5 py-1 text-(--color-bad)"
                       onClick={() => remove.mutate(a.handle)}
                       title="Delete user"
                     >
@@ -132,7 +132,7 @@ export function AccountsTab({ id }: { id: string }) {
 
       <Card>
         <h3 className="mb-3 flex items-center gap-2 font-medium">
-          <UserPlus className="h-4 w-4 text-[--color-accent]" /> Add Digest User
+          <UserPlus className="h-4 w-4 text-(--color-accent)" /> Add Digest User
         </h3>
         <form
           className="space-y-3"
@@ -152,7 +152,7 @@ export function AccountsTab({ id }: { id: string }) {
               <select
                 value={accessPermission}
                 onChange={(e) => setAccess(Number(e.target.value))}
-                className="rounded-md border border-[--color-border] bg-[--color-bg] px-3 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+                className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-1.5 text-sm outline-none focus:border-(--color-accent)"
               >
                 {ACCESS.map((a) => (
                   <option key={a.value} value={a.value}>{a.label}</option>
@@ -161,7 +161,7 @@ export function AccountsTab({ id }: { id: string }) {
             </Field>
           </div>
           <div>
-            <div className="mb-1 text-sm text-[--color-muted]">Realms</div>
+            <div className="mb-1 text-sm text-(--color-muted)">Realms</div>
             <div className="grid grid-cols-3 gap-x-4 gap-y-1">
               {REALMS.map((r) => (
                 <label key={r.value} className="flex items-center gap-2 text-sm">
@@ -176,7 +176,7 @@ export function AccountsTab({ id }: { id: string }) {
             </div>
           </div>
           {add.isError && (
-            <div className="rounded-md bg-[--color-bad]/15 px-3 py-2 text-sm text-[--color-bad]">
+            <div className="rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
               {add.error instanceof ApiError ? add.error.message : "Failed to add user"}
             </div>
           )}
