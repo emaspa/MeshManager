@@ -212,11 +212,12 @@ behaves unexpectedly.
 - [x] Network info, account management, device discovery
 - [x] WS-MAN browser
 - [x] Tauri desktop shell, installer, and logging
-- [ ] Certificate and TLS management
+- [x] Alarm clock (scheduled wake)
+- [x] Certificate view (read-only); TLS / certificate management still to come
 - [ ] Wireless and wired network configuration
 - [ ] Remote Access (CIRA): MPS servers, home domains, policies
-- [ ] System Defense, power policies, event subscriptions, alarm clock
-- [ ] Code signing for the installer
+- [ ] System Defense, power policies, event subscriptions
+- [ ] Code signing for the installer (requires a code-signing certificate)
 
 ## License
 
