@@ -35,6 +35,7 @@ func (s *Server) Router() http.Handler {
 
 	r.Get("/api/health", s.handleHealth)
 	r.Post("/api/connect", s.handleConnect)
+	r.Post("/api/discover", s.handleDiscover)
 	r.Get("/api/devices", s.handleListDevices)
 
 	r.Route("/api/devices/{id}", func(r chi.Router) {
@@ -43,7 +44,9 @@ func (s *Server) Router() http.Handler {
 		r.Get("/info", s.handleInfo)
 		r.Get("/power", s.handlePowerState)
 		r.Post("/power", s.handlePowerAction)
+		r.Post("/boot", s.handleBoot)
 		r.Get("/hardware", s.handleHardware)
+		r.Get("/network", s.handleNetwork)
 		r.Get("/eventlog", s.handleEventLog)
 		r.Get("/auditlog", s.handleAuditLog)
 		r.Get("/sol", s.handleSOL)   // WebSocket

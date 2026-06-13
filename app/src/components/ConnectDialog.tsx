@@ -6,15 +6,17 @@ import { useUi } from "../store";
 import { Button, Field, Input } from "../lib/ui";
 
 export function ConnectDialog() {
-  const setConnectOpen = useUi((s) => s.setConnectOpen);
+  const closeConnect = useUi((s) => s.closeConnect);
+  const prefill = useUi((s) => s.connectPrefill);
   const select = useUi((s) => s.select);
   const qc = useQueryClient();
 
   const [form, setForm] = useState<ConnectParams>({
-    host: "",
+    host: prefill?.host ?? "",
+    port: prefill?.port,
     username: "admin",
     password: "",
-    tls: false,
+    tls: prefill?.tls ?? false,
     insecure: true,
     name: "",
   });
@@ -24,7 +26,7 @@ export function ConnectDialog() {
     onSuccess: (device) => {
       qc.invalidateQueries({ queryKey: ["devices"] });
       select(device.id);
-      setConnectOpen(false);
+      closeConnect();
     },
   });
 
@@ -36,7 +38,7 @@ export function ConnectDialog() {
       <div className="w-[420px] rounded-xl border border-[--color-border] bg-[--color-panel] p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add AMT Device</h2>
-          <Button variant="ghost" className="px-1.5 py-1" onClick={() => setConnectOpen(false)}>
+          <Button variant="ghost" className="px-1.5 py-1" onClick={() => closeConnect()}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -109,7 +111,7 @@ export function ConnectDialog() {
           )}
 
           <div className="mt-2 flex justify-end gap-2">
-            <Button type="button" onClick={() => setConnectOpen(false)}>
+            <Button type="button" onClick={() => closeConnect()}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={connect.isPending}>

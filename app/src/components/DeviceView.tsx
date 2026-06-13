@@ -11,12 +11,14 @@ import {
   TerminalSquare,
   MonitorSmartphone,
   LayoutDashboard,
+  Network,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
 import { Badge, Button } from "../lib/ui";
 import { Overview } from "./tabs/Overview";
 import { HardwareTab } from "./tabs/HardwareTab";
+import { NetworkTab } from "./tabs/NetworkTab";
 import { EventLogTab } from "./tabs/EventLogTab";
 import { AuditLogTab } from "./tabs/AuditLogTab";
 import { SerialTab } from "./tabs/SerialTab";
@@ -25,6 +27,7 @@ import { KvmTab } from "./tabs/KvmTab";
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "hardware", label: "Hardware", icon: Cpu },
+  { id: "network", label: "Network", icon: Network },
   { id: "events", label: "Event Log", icon: ScrollText },
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
   { id: "serial", label: "Serial", icon: TerminalSquare },
@@ -43,6 +46,13 @@ const POWER_MENU: { action: PowerAction; label: string }[] = [
   { action: "hibernate", label: "Hibernate" },
 ];
 
+const BOOT_MENU: { device: string; label: string }[] = [
+  { device: "pxe", label: "Reset → PXE / Network" },
+  { device: "cd", label: "Reset → CD / DVD" },
+  { device: "hdd", label: "Reset → Hard Disk" },
+  { device: "bios", label: "Reset → BIOS Setup" },
+];
+
 export function DeviceView({ id }: { id: string }) {
   const [tab, setTab] = useState<TabId>("overview");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,6 +69,14 @@ export function DeviceView({ id }: { id: string }) {
 
   const powerAction = useMutation({
     mutationFn: (action: PowerAction) => api.power(id, action),
+    onSettled: () => {
+      setMenuOpen(false);
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["power", id] }), 1500);
+    },
+  });
+
+  const bootAction = useMutation({
+    mutationFn: (device: string) => api.boot(id, device, "reset"),
     onSettled: () => {
       setMenuOpen(false);
       setTimeout(() => qc.invalidateQueries({ queryKey: ["power", id] }), 1500);
@@ -110,6 +128,20 @@ export function DeviceView({ id }: { id: string }) {
                   {m.label}
                 </button>
               ))}
+              <div className="my-1 border-t border-[--color-border]" />
+              <div className="px-3 py-1 text-xs uppercase tracking-wide text-[--color-muted]">
+                Boot to
+              </div>
+              {BOOT_MENU.map((m) => (
+                <button
+                  key={m.device}
+                  onClick={() => bootAction.mutate(m.device)}
+                  disabled={bootAction.isPending}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-[--color-border] disabled:opacity-40"
+                >
+                  {m.label}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -148,6 +180,7 @@ export function DeviceView({ id }: { id: string }) {
       <div className="flex-1 overflow-y-auto p-5">
         {tab === "overview" && <Overview id={id} />}
         {tab === "hardware" && <HardwareTab id={id} />}
+        {tab === "network" && <NetworkTab id={id} />}
         {tab === "events" && <EventLogTab id={id} />}
         {tab === "audit" && <AuditLogTab id={id} />}
         {tab === "serial" && <SerialTab id={id} />}

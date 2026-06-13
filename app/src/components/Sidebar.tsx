@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Server, Wifi, WifiOff } from "lucide-react";
+import { Plus, Server, Wifi, WifiOff, Radar } from "lucide-react";
 import clsx from "clsx";
 import { api } from "../lib/api";
 import { useUi } from "../store";
 import { Button, Spinner } from "../lib/ui";
 
 export function Sidebar() {
-  const { selectedId, select, setConnectOpen } = useUi();
+  const { selectedId, select, openConnect, setDiscoverOpen } = useUi();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 5000 });
   const devices = useQuery({
     queryKey: ["devices"],
@@ -30,9 +30,14 @@ export function Sidebar() {
 
       <div className="flex items-center justify-between px-4 py-2">
         <span className="text-xs uppercase tracking-wide text-[--color-muted]">Devices</span>
-        <Button variant="ghost" className="px-1.5 py-1" onClick={() => setConnectOpen(true)}>
-          <Plus className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-1">
+          <Button variant="ghost" className="px-1.5 py-1" title="Discover devices" onClick={() => setDiscoverOpen(true)}>
+            <Radar className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" className="px-1.5 py-1" title="Add device" onClick={() => openConnect()}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2">

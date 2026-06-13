@@ -82,6 +82,28 @@ export interface AuditLogEntry {
   extended: string;
 }
 
+export interface NetworkInterface {
+  name: string;
+  instanceId: string;
+  macAddress: string;
+  linkUp: boolean;
+  dhcpEnabled: boolean;
+  ipAddress: string;
+  subnetMask: string;
+  defaultGateway: string;
+  primaryDns: string;
+  secondaryDns: string;
+  sharedMac: boolean;
+}
+
+export interface Discovered {
+  host: string;
+  port: number;
+  tls: boolean;
+  server: string;
+  isAmt: boolean;
+}
+
 export type PowerAction =
   | "on"
   | "off"
@@ -119,6 +141,11 @@ export const api = {
   listDevices: () => req<Device[]>("/api/devices"),
   connect: (p: ConnectParams) =>
     req<Device>("/api/connect", { method: "POST", body: JSON.stringify(p) }),
+  discover: (cidr: string, port: number | undefined, tls: boolean) =>
+    req<Discovered[]>("/api/discover", {
+      method: "POST",
+      body: JSON.stringify({ cidr, port, tls }),
+    }),
   disconnect: (id: string) =>
     req<{ ok: boolean }>(`/api/devices/${id}/disconnect`, { method: "POST" }),
   info: (id: string) => req<DeviceInfo>(`/api/devices/${id}/info`),
@@ -128,7 +155,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ action }),
     }),
+  boot: (id: string, device: string, power = "reset") =>
+    req<{ ok: boolean }>(`/api/devices/${id}/boot`, {
+      method: "POST",
+      body: JSON.stringify({ device, power }),
+    }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
+  network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
   eventLog: (id: string) => req<EventLogEntry[]>(`/api/devices/${id}/eventlog`),
   auditLog: (id: string) => req<AuditLogEntry[]>(`/api/devices/${id}/auditlog`),
 };
