@@ -160,10 +160,11 @@ func (s *Session) Hardware() (Hardware, error) {
 		}
 
 		// Storage model + serial come from CIM_PhysicalPackage, paired with
-		// CIM_MediaAccessDevice at index+1 (package[0] is the system enclosure).
-		// AMT paginates enumerations, so pull every batch: this list (enclosure +
-		// disks + battery + ...) can span multiple pulls and a single pull would
-		// drop later disks.
+		// CIM_MediaAccessDevice by index. NOTE: unlike MeshCommander (whose flat
+		// enumeration puts the system enclosure at [0], so it uses index+1), this
+		// library buckets the enclosure separately as CIM_Chassis, so the
+		// PhysicalPackage array holds only the disk packages in order -> pair at
+		// the same index. AMT also paginates, so pull every batch.
 		var pkgs []struct{ model, serial string }
 		if enum, err := m.CIM.PhysicalPackage.Enumerate(); err == nil {
 			ctx := enum.Body.EnumerateResponse.EnumerationContext
@@ -192,9 +193,9 @@ func (s *Session) Hardware() (Hardware, error) {
 						ElementName: d.ElementName,
 						MaxMediaKB:  int(d.MaxMediaSize),
 					}
-					if p := idx + 1; p < len(pkgs) {
-						di.Model = pkgs[p].model
-						di.SerialNumber = pkgs[p].serial
+					if idx < len(pkgs) {
+						di.Model = pkgs[idx].model
+						di.SerialNumber = pkgs[idx].serial
 					}
 					hw.Disks = append(hw.Disks, di)
 				}
