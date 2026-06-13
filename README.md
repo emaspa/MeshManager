@@ -9,9 +9,9 @@ host OS) to control power and boot, read hardware and logs, manage accounts,
 certificates and networking, and drive the redirection features
 (Serial-over-LAN, KVM remote desktop, and boot-from-ISO).
 
-License: Apache 2.0. Platform: the desktop build runs on Windows and Linux
-(Linux bundles as deb / rpm / AppImage); the Go sidecar and React UI are
-cross-platform.
+License: Apache 2.0. Platform: the desktop build runs on Windows, macOS, and
+Linux (Linux bundles as deb / rpm / AppImage; macOS as .app / .dmg); the Go
+sidecar and React UI are cross-platform.
 
 ## Features
 
@@ -110,6 +110,10 @@ browser it falls back to a configurable endpoint.
   libraries (`webkit2gtk-4.1`, `gtk+-3.0`, `libsoup-3.0`) and the usual C
   build tools. On Debian/Ubuntu:
   `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev build-essential pkg-config`.
+- For the macOS desktop build (Apple Silicon or Intel): the Xcode Command Line
+  Tools (`xcode-select --install`) and the stable Rust toolchain. Go, Node, and
+  Rust can all be installed via Homebrew (`brew install go node rust`). The
+  WebView (WKWebView) ships with the OS. Tauri targets the host architecture.
 
 ## Build and run
 
@@ -121,14 +125,15 @@ Windows:
 pwsh scripts/build.ps1
 ```
 
-Linux:
+Linux and macOS:
 
 ```bash
 bash scripts/build.sh
 ```
 
-Both build the sidecar, compile the frontend, and bundle the app under
-`app/src-tauri/target/release/`.
+`build.sh` resolves the host Rust triple, so the same script bundles for Linux
+and macOS. Each builds the sidecar, compiles the frontend, and bundles the app
+under `app/src-tauri/target/release/`.
 
 Windows produces installers plus a portable executable:
 
@@ -142,8 +147,15 @@ Linux produces:
 - `bundle/rpm/MeshManager-<version>-1.x86_64.rpm`
 - `bundle/appimage/MeshManager_<version>_amd64.AppImage` (portable)
 
+macOS produces (named for the host architecture):
+
+- `bundle/macos/MeshManager.app` (app bundle)
+- `bundle/dmg/MeshManager_<version>_<arch>.dmg` (e.g. `_aarch64` on Apple Silicon)
+
 Builds are currently unsigned, so Windows SmartScreen warns on first run
-("More info" then "Run anyway").
+("More info" then "Run anyway"). On macOS, Gatekeeper blocks the unsigned app on
+first launch: right-click it and choose Open, or clear the quarantine flag with
+`xattr -dr com.apple.quarantine MeshManager.app`.
 
 ### Develop the desktop app
 
@@ -172,7 +184,7 @@ cd app; bun install; cd ..
 pwsh scripts/dev.ps1
 ```
 
-Linux:
+Linux and macOS:
 
 ```bash
 cd app && npm install && cd ..
@@ -258,7 +270,8 @@ field. Because the sidecar's file logger starts with the app, a change takes
 effect on the next launch.
 
 In the packaged app the log folder is the per-user app log directory: on
-Windows `%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`, on Linux
+Windows `%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`, on macOS
+`~/Library/Logs/com.emaspa.meshmanager/`, on Linux
 `~/.local/share/com.emaspa.meshmanager/logs/` (or `$XDG_DATA_HOME`). Click the
 Logs button in the sidebar footer to open it. When running the sidecar standalone, pass
 `-log-dir <path>` (omit it to log to stderr only) and optionally
