@@ -24,8 +24,14 @@ const targets = [
 ];
 
 for (const file of targets) {
-  const json = JSON.parse(readFileSync(file, "utf8"));
-  json.version = version;
-  writeFileSync(file, JSON.stringify(json, null, 2) + "\n");
+  const text = readFileSync(file, "utf8");
+  // Replace only the first top-level "version" field so the rest of the file's
+  // formatting (e.g. inline arrays) is left untouched.
+  const pattern = /("version":\s*")[^"]*(")/;
+  if (!pattern.test(text)) {
+    console.error(`no "version" field found in ${file}`);
+    process.exit(1);
+  }
+  writeFileSync(file, text.replace(pattern, `$1${version}$2`));
   console.log(`set version ${version} in ${file}`);
 }
