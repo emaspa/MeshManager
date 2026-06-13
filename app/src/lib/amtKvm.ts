@@ -11,6 +11,7 @@
 // raw RFB byte stream over the WebSocket; this class decodes it to a canvas and
 // sends input back.
 import { Inflate } from "fflate";
+import { clientLog } from "./logger";
 
 const SET_PIXEL_NONE = 2; // bytes per pixel (RGB565)
 
@@ -36,6 +37,11 @@ export class AmtKvmClient {
   private inflate!: Inflate;
   private inflateOut: Uint8Array[] = [];
 
+  // Diagnostics (bounded so the log isn't flooded).
+  private totalBytes = 0;
+  private fbUpdates = 0;
+  private loggedFirstData = false;
+
   constructor(
     canvas: HTMLCanvasElement,
     send: (b: Uint8Array) => void,
@@ -55,6 +61,11 @@ export class AmtKvmClient {
   /** Feed raw RFB bytes received from the device. */
   processData(data: ArrayBuffer | Uint8Array) {
     const incoming = data instanceof Uint8Array ? data : new Uint8Array(data);
+    this.totalBytes += incoming.byteLength;
+    if (!this.loggedFirstData) {
+      this.loggedFirstData = true;
+      void clientLog("info", `kvm: first data (${incoming.byteLength} bytes), state=${this.state}`, "kvm");
+    }
     if (!this.acc) {
       this.acc = incoming;
     } else {
@@ -99,6 +110,16 @@ export class AmtKvmClient {
         this.ctx.canvas.width = this.width;
         this.ctx.canvas.height = this.height;
 
+        // Log the server's pixel format so we can confirm the RGB565 assumption.
+        void clientLog(
+          "info",
+          `kvm: ServerInit ${this.width}x${this.height} bpp=${acc[4]} depth=${acc[5]} ` +
+            `bigEndian=${acc[6]} trueColor=${acc[7]} ` +
+            `max(r=${view.getUint16(8)},g=${view.getUint16(10)},b=${view.getUint16(12)}) ` +
+            `shift(r=${acc[14]},g=${acc[15]},b=${acc[16]})`,
+          "kvm",
+        );
+
         // SetEncodings: RLE(16), RAW(0), 1092 (Intel), DesktopSize(-223).
         const enc = [16, 0, 1092, -223];
         const msg: number[] = [2, 0, (enc.length >> 8) & 0xff, enc.length & 0xff];
@@ -107,15 +128,28 @@ export class AmtKvmClient {
 
         this.state = 4;
         this.onState("running");
+        void clientLog("info", "kvm: handshake complete, requesting framebuffer", "kvm");
         this.sendRefresh();
       } else if (this.state === 4) {
         // Server message type.
         switch (acc[0]) {
-          case 0: // FramebufferUpdate
+          case 0: { // FramebufferUpdate
             if (acc.byteLength < 4) return;
-            this.state = 100 + view.getUint16(2); // pending rect count
+            const rects = view.getUint16(2);
+            this.state = 100 + rects; // pending rect count
             cmdsize = 4;
+            if (this.fbUpdates < 3) {
+              this.fbUpdates++;
+              void clientLog("info", `kvm: FramebufferUpdate #${this.fbUpdates}, ${rects} rect(s)`, "kvm");
+            }
+            // A 0-rect update would otherwise wedge the state machine; recover
+            // by re-requesting and returning to the message-dispatch state.
+            if (rects === 0) {
+              this.state = 4;
+              this.sendRefresh();
+            }
             break;
+          }
           case 2: // Bell
             cmdsize = 1;
             break;
@@ -183,9 +217,17 @@ export class AmtKvmClient {
       if (acc.byteLength < 16) return 0;
       const datalen = view.getUint32(12);
       if (acc.byteLength < 16 + datalen) return 0;
-      const block = acc.subarray(16, 16 + datalen);
-      const lre = this.inflateBlock(block);
-      this.decodeLRE(lre, 0, x, y, width, height, s);
+      const p = 16;
+      // Fast path: an uncompressed DEFLATE "stored" block (the default, since
+      // AMT compression is off unless explicitly enabled) — decode the LRE
+      // payload directly, skipping the 5-byte stored-block header. This mirrors
+      // MeshCommander and avoids the inflater entirely.
+      if (datalen > 5 && acc[p] === 0 && (acc[p + 1] | (acc[p + 2] << 8)) === datalen - 5) {
+        this.decodeLRE(acc, p + 5, x, y, width, height, s);
+      } else {
+        const lre = this.inflateBlock(acc.subarray(p, p + datalen));
+        this.decodeLRE(lre, 0, x, y, width, height, s);
+      }
       cmdsize = 16 + datalen;
     } else {
       this.fail(`unsupported encoding ${encoding}`);
@@ -361,6 +403,7 @@ export class AmtKvmClient {
   }
 
   private fail(detail: string) {
+    void clientLog("error", `kvm: ${detail} (state=${this.state}, bytes=${this.totalBytes})`, "kvm");
     this.onState("error", detail);
   }
 }
