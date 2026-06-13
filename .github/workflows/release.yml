@@ -155,15 +155,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $rel = "app/src-tauri/target/release"
-          $runtime = Get-ChildItem -Path $rel -File |
-            Where-Object { $_.Extension -in '.exe', '.dll' }
-          $mainExe = $runtime |
-            Where-Object { $_.Extension -eq '.exe' -and $_.Name -notlike 'amtd-*' }
-          $sidecar = $runtime | Where-Object { $_.Name -like 'amtd-*.exe' }
-          if (-not $mainExe) { Write-Error "main exe not found in $rel"; exit 1 }
-          if (-not $sidecar) { Write-Error "amtd sidecar not found in $rel"; exit 1 }
+          Write-Host "Top-level of ${rel}:"
+          Get-ChildItem $rel -File | Select-Object Name, Length | Format-Table | Out-String | Write-Host
           New-Item -ItemType Directory -Force portable | Out-Null
-          $runtime | ForEach-Object { Copy-Item $_.FullName portable }
+
+          # Main executable (anything that isn't the amtd sidecar) plus any
+          # runtime DLLs that sit next to it.
+          $main = Get-ChildItem $rel -File -Filter *.exe |
+            Where-Object { $_.BaseName -notlike 'amtd*' } | Select-Object -First 1
+          if (-not $main) { Write-Error "main exe not found in $rel"; exit 1 }
+          Copy-Item $main.FullName portable
+          Get-ChildItem $rel -File -Filter *.dll | ForEach-Object { Copy-Item $_.FullName portable }
+
+          # The amtd sidecar: Tauri stages it beside the release binary as
+          # amtd.exe (the name the app resolves at runtime). Fall back to the
+          # binary we built if it isn't there. Always emit it as amtd.exe.
+          $sc = Get-ChildItem $rel -File -Filter 'amtd*.exe' | Select-Object -First 1
+          if (-not $sc) {
+            $sc = Get-ChildItem "app/src-tauri/binaries" -File -Filter 'amtd-*.exe' | Select-Object -First 1
+          }
+          if (-not $sc) { Write-Error "amtd sidecar not found"; exit 1 }
+          Copy-Item $sc.FullName (Join-Path portable "amtd.exe")
+
           $version = "${{ needs.prepare.outputs.version }}"
           $dest = "MeshManager_${version}_x64-portable.zip"
           Compress-Archive -Path "portable/*" -DestinationPath $dest -Force
