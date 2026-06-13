@@ -18,6 +18,9 @@ app/src-tauri/gen/
 out.log
 err.log
 
+# Graphify knowledge-graph output (generated)
+graphify-out/
+
 # Editor / OS
 .DS_Store
 .idea/
