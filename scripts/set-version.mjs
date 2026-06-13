@@ -40,9 +40,10 @@ const targets = [
     pattern: /^(version = ")[^"]*(")/m,
   },
   // Cargo.lock: the version line directly under the meshmanager package entry.
+  // \r?\n so it also matches CRLF checkouts (GitHub's Windows runner).
   {
     file: join(root, "app", "src-tauri", "Cargo.lock"),
-    pattern: /(name = "meshmanager"\nversion = ")[^"]*(")/,
+    pattern: /(name = "meshmanager"\r?\nversion = ")[^"]*(")/,
   },
 ];
 
