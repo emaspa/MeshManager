@@ -99,7 +99,7 @@ Power actions: `on`, `off`, `off-graceful`, `reset`, `reset-graceful`,
 - [x] React UI: device list, dashboard, power menu, inventory & log panels
 - [x] Serial-over-LAN terminal (xterm.js over the redirection channel)
 - [x] Tauri desktop shell (sidecar spawn + token handoff)
-- [ ] KVM remote desktop (RFB framebuffer + input forwarding)
+- [x] KVM remote desktop (AMT RFB framebuffer decode + mouse/keyboard forwarding)
 - [ ] IDE-R (boot from remote ISO)
 - [ ] Account & certificate management, network / system-defense config
 - [ ] Device discovery (mDNS / subnet scan)
