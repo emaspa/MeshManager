@@ -239,8 +239,8 @@ scripts/             dev.ps1, build.ps1, icon generator
 
 - Hardware validation is partial. The WS-MAN operations use Intel's library and
   several features (KVM, SOL, hardware, accounts, networking) have been
-  exercised against real vPro hardware; others are faithful ports that benefit
-  from more device testing. The logs are the first place to look if something
+  exercised against real vPro hardware; others are faithful ports that would
+  benefit from more device testing. The logs are the first place to look if something
   behaves unexpectedly.
 - A few panels are not implemented because the current go-wsman-messages
   release exposes no write API for them (System Defense, power policies, event
