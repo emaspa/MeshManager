@@ -60,11 +60,11 @@ export function HardwareTab({ id }: { id: string }) {
       <Card>
         <h3 className="mb-3 font-medium">Storage ({d.disks.length})</h3>
         <Table
-          head={["Model", "Serial", "Capacity (KB)"]}
+          head={["Model", "Serial", "Capacity (MB)"]}
           rows={d.disks.map((x) => [
             x.model || x.elementName || x.deviceId,
             x.serialNumber || "Unknown",
-            String(x.maxMediaKb),
+            x.maxMediaMb ? x.maxMediaMb.toLocaleString() : "Unknown",
           ])}
         />
       </Card>

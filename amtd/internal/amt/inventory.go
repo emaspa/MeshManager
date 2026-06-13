@@ -52,7 +52,7 @@ type DiskInfo struct {
 	DeviceID     string `json:"deviceId"`
 	Model        string `json:"model"`        // from CIM_PhysicalPackage
 	SerialNumber string `json:"serialNumber"` // from CIM_PhysicalPackage
-	MaxMediaKB   int    `json:"maxMediaKb"`
+	MaxMediaMB   int    `json:"maxMediaMb"`
 	ElementName  string `json:"elementName"`
 }
 
@@ -191,7 +191,7 @@ func (s *Session) Hardware() (Hardware, error) {
 					di := DiskInfo{
 						DeviceID:    d.DeviceID,
 						ElementName: d.ElementName,
-						MaxMediaKB:  int(d.MaxMediaSize),
+						MaxMediaMB:  int(d.MaxMediaSize) / 1024, // AMT reports KB
 					}
 					if idx < len(pkgs) {
 						di.Model = pkgs[idx].model

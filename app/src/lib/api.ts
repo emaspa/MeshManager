@@ -78,7 +78,7 @@ export interface Hardware {
     deviceId: string;
     model: string;
     serialNumber: string;
-    maxMediaKb: number;
+    maxMediaMb: number;
     elementName: string;
   }[];
 }
