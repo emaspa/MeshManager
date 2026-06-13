@@ -303,6 +303,10 @@ scripts/             dev.ps1, build.ps1, icon generator
   subscriptions). Their state can still be read through the WS-MAN browser.
 - Installers are unsigned. Code signing requires a code-signing certificate.
 
+## Support
+
+If you find MeshManager useful, consider [buying me a coffee](https://buymeacoffee.com/emaspa).
+
 ## License
 
 MeshManager is licensed under the Apache License 2.0; see [LICENSE](LICENSE).
