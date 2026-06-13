@@ -17,6 +17,7 @@ import {
   Braces,
   AlarmClock,
   FileKey,
+  Cloud,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
@@ -33,11 +34,13 @@ import { AccountsTab } from "./tabs/AccountsTab";
 import { WsmanTab } from "./tabs/WsmanTab";
 import { AlarmsTab } from "./tabs/AlarmsTab";
 import { CertificatesTab } from "./tabs/CertificatesTab";
+import { RemoteAccessTab } from "./tabs/RemoteAccessTab";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "hardware", label: "Hardware", icon: Cpu },
   { id: "network", label: "Network", icon: Network },
+  { id: "cira", label: "Remote Access", icon: Cloud },
   { id: "accounts", label: "Accounts", icon: Users },
   { id: "certs", label: "Certificates", icon: FileKey },
   { id: "alarms", label: "Wake", icon: AlarmClock },
@@ -196,6 +199,7 @@ export function DeviceView({ id }: { id: string }) {
         {tab === "overview" && <Overview id={id} />}
         {tab === "hardware" && <HardwareTab id={id} />}
         {tab === "network" && <NetworkTab id={id} />}
+        {tab === "cira" && <RemoteAccessTab id={id} />}
         {tab === "accounts" && <AccountsTab id={id} />}
         {tab === "certs" && <CertificatesTab id={id} />}
         {tab === "alarms" && <AlarmsTab id={id} />}

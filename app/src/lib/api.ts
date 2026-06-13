@@ -113,6 +113,21 @@ export interface Account {
   enabled: boolean;
 }
 
+export interface MpsServer {
+  name: string;
+  accessInfo: string;
+  port: number;
+  commonName: string;
+}
+export interface CiraPolicy {
+  name: string;
+  trigger: string;
+}
+export interface RemoteAccessConfig {
+  mpsServers: MpsServer[];
+  policies: CiraPolicy[];
+}
+
 export interface WiFiProfile {
   instanceId: string;
   name: string;
@@ -212,6 +227,17 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  remoteAccess: (id: string) => req<RemoteAccessConfig>(`/api/devices/${id}/remoteaccess`),
+  addMps: (
+    id: string,
+    body: { accessInfo: string; port: number; username: string; password: string; commonName: string },
+  ) => req<{ ok: boolean }>(`/api/devices/${id}/remoteaccess/mps`, { method: "POST", body: JSON.stringify(body) }),
+  deleteMps: (id: string, name: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/remoteaccess/mps/${encodeURIComponent(name)}`, { method: "DELETE" }),
+  addPolicy: (id: string, body: { mpsName: string; trigger: number; tunnelLifeSeconds: number }) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/remoteaccess/policies`, { method: "POST", body: JSON.stringify(body) }),
+  deletePolicy: (id: string, name: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/remoteaccess/policies/${encodeURIComponent(name)}`, { method: "DELETE" }),
   wifi: (id: string) => req<WiFiProfile[]>(`/api/devices/${id}/wifi`),
   addWifi: (id: string, body: { ssid: string; passphrase: string; priority: number }) =>
     req<{ ok: boolean }>(`/api/devices/${id}/wifi`, { method: "POST", body: JSON.stringify(body) }),

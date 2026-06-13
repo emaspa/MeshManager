@@ -281,6 +281,67 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleRemoteAccess(w http.ResponseWriter, r *http.Request) {
+	cfg, err := sessionFrom(r).RemoteAccess()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg)
+}
+
+func (s *Server) handleAddMps(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		AccessInfo string `json:"accessInfo"`
+		Port       int    `json:"port"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		CommonName string `json:"commonName"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddMpsServer(body.AccessInfo, body.Port, body.Username, body.Password, body.CommonName); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDeleteMps(w http.ResponseWriter, r *http.Request) {
+	if err := sessionFrom(r).DeleteMpsServer(chi.URLParam(r, "name")); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleAddPolicy(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		MpsName           string `json:"mpsName"`
+		Trigger           int    `json:"trigger"`
+		TunnelLifeSeconds int    `json:"tunnelLifeSeconds"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddCiraPolicy(body.MpsName, body.Trigger, body.TunnelLifeSeconds); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDeletePolicy(w http.ResponseWriter, r *http.Request) {
+	if err := sessionFrom(r).DeleteCiraPolicy(chi.URLParam(r, "name")); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleWiFi(w http.ResponseWriter, r *http.Request) {
 	profiles, err := sessionFrom(r).WiFiProfiles()
 	if err != nil {
