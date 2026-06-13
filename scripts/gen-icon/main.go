@@ -1,5 +1,7 @@
 // Generates a 1024x1024 source icon for MeshManager: a dark rounded tile with
-// a stylized "mesh" of connected nodes in the accent color.
+// a server glyph in the accent color. The glyph is the lucide "Server" icon
+// (two stacked rounded-rect units, each with an indicator dot) so the app icon
+// in the titlebar / taskbar / dock matches the icon shown in the About dialog.
 package main
 
 import (
@@ -18,7 +20,6 @@ func main() {
 	bg := color.RGBA{0x11, 0x15, 0x1f, 0xff}
 	tile := color.RGBA{0x16, 0x1b, 0x27, 0xff}
 	accent := color.RGBA{0x4c, 0x8d, 0xff, 0xff}
-	light := color.RGBA{0xe4, 0xe9, 0xf2, 0xff}
 
 	radius := 180.0
 	for y := 0; y < S; y++ {
@@ -31,30 +32,21 @@ func main() {
 		}
 	}
 
-	// Mesh nodes (normalized positions within the tile).
-	nodes := [][2]float64{
-		{0.30, 0.30}, {0.70, 0.26}, {0.50, 0.50},
-		{0.26, 0.70}, {0.74, 0.72},
-	}
-	edges := [][2]int{{0, 1}, {0, 2}, {1, 2}, {2, 3}, {2, 4}, {3, 4}, {0, 3}, {1, 4}}
+	// lucide "Server" geometry lives in a 24x24 viewBox; map it onto the canvas
+	// centered, scaled so the 24-unit box stays comfortably inside the tile.
+	const sc = 31.0
+	lx := func(u float64) float64 { return S/2 + (u-12)*sc }
+	ly := func(v float64) float64 { return S/2 + (v-12)*sc }
+	stroke := 2.0 * sc // lucide default stroke-width = 2 units
 
-	pt := func(n [2]float64) (float64, float64) { return n[0] * S, n[1] * S }
+	// Two server units: rect(x2 y2 w20 h8 rx2) and rect(x2 y14 w20 h8 rx2).
+	// Center = (12, y+4); half-extents = (10, 4); corner radius = 2.
+	strokeRoundRect(img, lx(12), ly(6), 10*sc, 4*sc, 2*sc, stroke/2, accent)
+	strokeRoundRect(img, lx(12), ly(18), 10*sc, 4*sc, 2*sc, stroke/2, accent)
 
-	for _, e := range edges {
-		x1, y1 := pt(nodes[e[0]])
-		x2, y2 := pt(nodes[e[1]])
-		drawLine(img, x1, y1, x2, y2, 14, accent)
-	}
-	for i, n := range nodes {
-		cx, cy := pt(n)
-		r := 56.0
-		c := accent
-		if i == 2 {
-			r = 74
-			c = light
-		}
-		drawDisc(img, cx, cy, r, c)
-	}
+	// Indicator dots at (6,6) and (6,18) — drawn as round-capped points.
+	drawDisc(img, lx(6), ly(6), stroke/2, accent)
+	drawDisc(img, lx(6), ly(18), stroke/2, accent)
 
 	f, err := os.Create(os.Args[1])
 	if err != nil {
@@ -77,6 +69,35 @@ func insideRounded(x, y, lo, hi int, r float64) bool {
 	return math.Hypot(float64(x)-ix, float64(y)-iy) <= r
 }
 
+// sdRoundRect is the signed distance from a point (relative to the rect center)
+// to a rounded rectangle with the given half-extents and corner radius.
+// Negative inside, zero on the boundary, positive outside.
+func sdRoundRect(px, py, hw, hh, r float64) float64 {
+	qx := math.Abs(px) - (hw - r)
+	qy := math.Abs(py) - (hh - r)
+	return math.Hypot(math.Max(qx, 0), math.Max(qy, 0)) + math.Min(math.Max(qx, qy), 0) - r
+}
+
+// strokeRoundRect draws the outline of a rounded rectangle: every pixel within
+// halfW of the boundary, with a 1.5px antialiased edge.
+func strokeRoundRect(img *image.RGBA, cx, cy, hw, hh, r, halfW float64, c color.RGBA) {
+	x0, x1 := int(cx-hw-halfW-2), int(cx+hw+halfW+2)
+	y0, y1 := int(cy-hh-halfW-2), int(cy+hh+halfW+2)
+	for y := y0; y <= y1; y++ {
+		for x := x0; x <= x1; x++ {
+			if x < 0 || y < 0 || x >= S || y >= S {
+				continue
+			}
+			d := math.Abs(sdRoundRect(float64(x)-cx, float64(y)-cy, hw, hh, r))
+			if d <= halfW {
+				blend(img, x, y, c, 1)
+			} else if d <= halfW+1.5 {
+				blend(img, x, y, c, (halfW+1.5-d)/1.5)
+			}
+		}
+	}
+}
+
 func drawDisc(img *image.RGBA, cx, cy, r float64, c color.RGBA) {
 	for y := int(cy - r); y <= int(cy+r); y++ {
 		for x := int(cx - r); x <= int(cx+r); x++ {
@@ -90,14 +111,6 @@ func drawDisc(img *image.RGBA, cx, cy, r float64, c color.RGBA) {
 				blend(img, x, y, c, (r+1.5-d)/1.5)
 			}
 		}
-	}
-}
-
-func drawLine(img *image.RGBA, x1, y1, x2, y2, w float64, c color.RGBA) {
-	steps := int(math.Hypot(x2-x1, y2-y1))
-	for i := 0; i <= steps; i++ {
-		t := float64(i) / float64(steps)
-		drawDisc(img, x1+(x2-x1)*t, y1+(y2-y1)*t, w/2, c)
 	}
 }
 
