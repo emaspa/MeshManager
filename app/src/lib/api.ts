@@ -113,6 +113,14 @@ export interface Account {
   enabled: boolean;
 }
 
+export interface Certificate {
+  instanceId: string;
+  name: string;
+  subject: string;
+  issuer: string;
+  trustedRoot: boolean;
+}
+
 export interface Alarm {
   instanceId: string;
   name: string;
@@ -199,6 +207,7 @@ export const api = {
   browseClasses: (id: string) => req<string[]>(`/api/devices/${id}/browse/classes`),
   browse: (id: string, className: string) =>
     req<unknown>(`/api/devices/${id}/browse?class=${encodeURIComponent(className)}`),
+  certificates: (id: string) => req<Certificate[]>(`/api/devices/${id}/certificates`),
   alarms: (id: string) => req<Alarm[]>(`/api/devices/${id}/alarms`),
   addAlarm: (
     id: string,

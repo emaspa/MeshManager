@@ -51,6 +51,7 @@ func (s *Server) Router() http.Handler {
 		r.Get("/network", s.handleNetwork)
 		r.Get("/browse/classes", s.handleBrowseClasses)
 		r.Get("/browse", s.handleBrowse)
+		r.Get("/certificates", s.handleCertificates)
 		r.Get("/alarms", s.handleAlarms)
 		r.Post("/alarms", s.handleAddAlarm)
 		r.Delete("/alarms/{instanceId}", s.handleDeleteAlarm)

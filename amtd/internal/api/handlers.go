@@ -196,6 +196,15 @@ func (s *Server) handleAccountAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s *Server) handleCertificates(w http.ResponseWriter, r *http.Request) {
+	certs, err := sessionFrom(r).Certificates()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, certs)
+}
+
 func (s *Server) handleAlarms(w http.ResponseWriter, r *http.Request) {
 	alarms, err := sessionFrom(r).Alarms()
 	if err != nil {
