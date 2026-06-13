@@ -27,7 +27,7 @@ export function AboutDialog() {
           <div className="mt-3 text-xl font-semibold">{APP_NAME}</div>
           <div className="font-mono text-sm text-(--color-muted)">v{version}</div>
           <p className="mt-3 text-sm text-(--color-muted)">
-            A modern Intel® AMT / vPro management console — power, boot, hardware,
+            A modern Intel® AMT / vPro management console - power, boot, hardware,
             Serial-over-LAN, KVM, IDE-R and more.
           </p>
 

@@ -11,12 +11,12 @@ export function Overview({ id }: { id: string }) {
 
   const d = info.data!;
   const rows: [string, string][] = [
-    ["Hostname", d.hostname || "—"],
-    ["Domain", d.domainName || "—"],
-    ["UUID", d.uuid || "—"],
-    ["Digest Realm", d.digestRealm || "—"],
-    ["Control Mode", d.controlMode || "—"],
-    ["Provisioning", d.provisioningState || "—"],
+    ["Hostname", d.hostname || "-"],
+    ["Domain", d.domainName || "-"],
+    ["UUID", d.uuid || "-"],
+    ["Digest Realm", d.digestRealm || "-"],
+    ["Control Mode", d.controlMode || "-"],
+    ["Provisioning", d.provisioningState || "-"],
     ["Network", d.networkEnabled ? "Enabled" : "Disabled"],
   ];
 

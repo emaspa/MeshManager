@@ -32,7 +32,7 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 // avoid spamming the file; failures (>=400) log at warn/error.
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Don't wrap WebSocket upgrades — the hijacker must reach the real writer.
+		// Don't wrap WebSocket upgrades - the hijacker must reach the real writer.
 		if r.Header.Get("Upgrade") != "" {
 			slog.Info("ws", "path", r.URL.Path)
 			next.ServeHTTP(w, r)

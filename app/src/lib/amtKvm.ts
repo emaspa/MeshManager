@@ -1,4 +1,4 @@
-// AMT KVM client — a port of MeshCommander's Intel AMT RFB implementation.
+// AMT KVM client - a port of MeshCommander's Intel AMT RFB implementation.
 //
 // Intel AMT KVM is a custom RFB (VNC) variant, not standard VNC:
 //   - default pixel format RGB565 (2 bytes/pixel, little-endian pixels)
@@ -151,7 +151,7 @@ export class AmtKvmClient {
         // SetPixelFormat for non-default formats (RGB565 is the AMT default).
         this.sendPixelFormat();
         // Opt into ZLib compression of tiles if requested (no-op on firmware
-        // that doesn't support the KVM extension — we still decode either way).
+        // that doesn't support the KVM extension - we still decode either way).
         if (this.useZLib) this.sendKvmExtCmd(4, 1);
 
         this.state = 4;
@@ -247,7 +247,7 @@ export class AmtKvmClient {
       if (acc.byteLength < 16 + datalen) return 0;
       const p = 16;
       // Fast path: an uncompressed DEFLATE "stored" block (the default, since
-      // AMT compression is off unless explicitly enabled) — decode the LRE
+      // AMT compression is off unless explicitly enabled) - decode the LRE
       // payload directly, skipping the 5-byte stored-block header. This mirrors
       // MeshCommander and avoids the inflater entirely.
       if (datalen > 5 && acc[p] === 0 && (acc[p + 1] | (acc[p + 2] << 8)) === datalen - 5) {

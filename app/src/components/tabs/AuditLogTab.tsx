@@ -34,7 +34,7 @@ export function AuditLogTab({ id }: { id: string }) {
                   {new Date(e.time).toLocaleString()}
                 </td>
                 <td className="py-1.5 pr-4">{e.app}</td>
-                <td className="py-1.5 pr-4">{e.event}{e.extended ? ` — ${e.extended}` : ""}</td>
+                <td className="py-1.5 pr-4">{e.event}{e.extended ? ` - ${e.extended}` : ""}</td>
                 <td className="py-1.5 pr-4">{e.initiator}</td>
                 <td className="py-1.5 pr-4 font-mono text-xs">{e.netAddress}</td>
               </tr>

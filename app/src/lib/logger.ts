@@ -1,5 +1,5 @@
 // Client-side logging: forwards UI errors to the sidecar so they land in the
-// same rotating log file as everything else — making tester bug reports
+// same rotating log file as everything else - making tester bug reports
 // self-contained. Logging must never throw or recurse, so it uses fetch
 // directly (not the api client) and swallows its own failures.
 import { sidecar } from "./sidecar";
@@ -41,5 +41,5 @@ export function installErrorLogging() {
     void clientLog("error", r?.message ?? String(r), "unhandledrejection", r?.stack ?? "");
   });
 
-  void clientLog("info", `UI started — ${navigator.userAgent}`, "startup");
+  void clientLog("info", `UI started - ${navigator.userAgent}`, "startup");
 }

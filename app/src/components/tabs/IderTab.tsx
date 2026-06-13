@@ -45,7 +45,7 @@ export function IderTab({ id }: { id: string }) {
       <Card>
         <div className="mb-3 flex items-center gap-2">
           <Disc className="h-5 w-5 text-(--color-accent)" />
-          <h3 className="font-medium">IDE-R — Boot from ISO</h3>
+          <h3 className="font-medium">IDE-R - Boot from ISO</h3>
           {active && <Badge tone="good">mounted</Badge>}
         </div>
         <p className="mb-4 text-sm text-(--color-muted)">
@@ -126,7 +126,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function fmtBytes(n: number): string {
-  if (!n) return "—";
+  if (!n) return "-";
   const units = ["B", "KB", "MB", "GB"];
   let v = n;
   let i = 0;

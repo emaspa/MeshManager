@@ -9,7 +9,7 @@ import (
 // it returns, the connection is a raw bidirectional RFB pipe: read the device's
 // framebuffer stream from Reader() and send RFB client messages with RawWrite.
 //
-// Unlike SOL, KVM is not framed by the redirection protocol past this point —
+// Unlike SOL, KVM is not framed by the redirection protocol past this point -
 // the device speaks Intel AMT's RFB variant directly over the tunnel.
 func StartKVM(t Target) (*Conn, error) {
 	c, err := Connect(t, ProtocolKVM)

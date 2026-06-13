@@ -60,7 +60,7 @@ function KV({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex flex-col">
       <span className="text-xs text-(--color-muted)">{k}</span>
-      <span className="font-mono">{v || "—"}</span>
+      <span className="font-mono">{v || "-"}</span>
     </div>
   );
 }
@@ -81,7 +81,7 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
         {rows.map((r, i) => (
           <tr key={i} className="border-t border-(--color-border)">
             {r.map((c, j) => (
-              <td key={j} className="py-1.5 pr-4">{c || "—"}</td>
+              <td key={j} className="py-1.5 pr-4">{c || "-"}</td>
             ))}
           </tr>
         ))}

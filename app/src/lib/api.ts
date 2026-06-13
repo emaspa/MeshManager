@@ -148,7 +148,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${baseUrl}${path}`, { ...init, headers });
   } catch (e) {
-    // Network-level failure the sidecar never sees — capture it client-side.
+    // Network-level failure the sidecar never sees - capture it client-side.
     void clientLog("error", `request to ${path} failed: ${String(e)}`, "api.fetch");
     throw e;
   }

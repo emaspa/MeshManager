@@ -76,7 +76,7 @@ func (s *Server) handleKVM(w http.ResponseWriter, r *http.Request) {
 	sess := sessionFrom(r)
 
 	// Ensure KVM is enabled in firmware first; a disabled SAP yields a black
-	// screen with no error. Best-effort — don't block connect if it fails.
+	// screen with no error. Best-effort - don't block connect if it fails.
 	if err := sess.EnableKVM(); err != nil {
 		slog.Warn("enable KVM failed (continuing)", "err", err.Error())
 	} else {

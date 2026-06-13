@@ -63,7 +63,7 @@ export function KvmTab({ id }: { id: string }) {
     ws.onmessage = (ev) => client.processData(ev.data as ArrayBuffer);
     ws.onerror = () => {
       setState("error");
-      setError("WebSocket error — is the device powered on with KVM enabled in MEBx?");
+      setError("WebSocket error - is the device powered on with KVM enabled in MEBx?");
     };
     ws.onclose = () => setState((s) => (s === "error" ? s : "closed"));
   }

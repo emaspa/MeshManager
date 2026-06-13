@@ -66,7 +66,7 @@ export function SerialTab({ id }: { id: string }) {
     };
     ws.onerror = () => {
       setState("error");
-      setError("WebSocket error — is the device powered on and SOL enabled?");
+      setError("WebSocket error - is the device powered on and SOL enabled?");
     };
     ws.onclose = () => setState((s) => (s === "error" ? s : "closed"));
 

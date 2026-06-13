@@ -48,7 +48,7 @@ func (s *IDER) handleSCSI(dev byte, cdb []byte, fr, deviceFlags byte) error {
 		n := int(binary.BigEndian.Uint16(cdb[7:9]))
 		return s.sendDiskData(dev, int64(lba), n, dma)
 
-	case 0x0a, 0x2a, 0x2e: // WRITE_* — not supported
+	case 0x0a, 0x2a, 0x2e: // WRITE_* - not supported
 		return s.commandEndResponse(true, 0x02, dev, 0x3a, 0x00)
 
 	case 0x1a: // MODE_SENSE_6

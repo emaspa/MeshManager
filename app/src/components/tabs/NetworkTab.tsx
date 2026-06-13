@@ -39,7 +39,7 @@ function KV({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex flex-col">
       <span className="text-xs text-(--color-muted)">{k}</span>
-      <span className="font-mono">{v || "—"}</span>
+      <span className="font-mono">{v || "-"}</span>
     </div>
   );
 }

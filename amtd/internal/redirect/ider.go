@@ -261,7 +261,7 @@ func (s *IDER) processOne(acc []byte) (int, error) {
 		deviceFlags := acc[14]
 		device := byte(devCDROM)
 		if deviceFlags&0x10 == 0 {
-			device = 0xA0 // floppy — unsupported, will report no media
+			device = 0xA0 // floppy - unsupported, will report no media
 		}
 		cdb := acc[16:28]
 		featureRegister := acc[9]
@@ -269,7 +269,7 @@ func (s *IDER) processOne(acc []byte) (int, error) {
 			return 0, err
 		}
 		return 28, nil
-	case 0x53: // DATA FROM HOST (write — unsupported)
+	case 0x53: // DATA FROM HOST (write - unsupported)
 		if len(acc) < 14 {
 			return 0, nil
 		}
