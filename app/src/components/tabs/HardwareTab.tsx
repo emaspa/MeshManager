@@ -43,11 +43,10 @@ export function HardwareTab({ id }: { id: string }) {
       <Card>
         <h3 className="mb-3 font-medium">Memory ({d.memory.length})</h3>
         <Table
-          head={["Bank", "Capacity (MB)", "Speed (MHz)", "Type", "Form factor", "Manufacturer", "Part #", "Serial"]}
+          head={["Bank", "Capacity (MB)", "Type", "Form factor", "Manufacturer", "Part #", "Serial"]}
           rows={d.memory.map((m) => [
             m.bankLabel,
             String(m.capacityMb),
-            String(m.speedMhz),
             m.type,
             m.formFactor,
             m.manufacturer,

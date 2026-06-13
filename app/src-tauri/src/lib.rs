@@ -77,6 +77,41 @@ fn open_logs(state: State<AppState>) -> Result<(), String> {
     result.map(|_| ()).map_err(|e| e.to_string())
 }
 
+/// Path of the file that persists the user's log-retention preference (days).
+fn retention_file(dir: &std::path::Path) -> PathBuf {
+    dir.join("log-retention.txt")
+}
+
+/// Reads the configured log retention in days (default 30, clamped 1..=3650).
+fn read_retention(dir: &std::path::Path) -> u32 {
+    std::fs::read_to_string(retention_file(dir))
+        .ok()
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .map(|d| d.clamp(1, 3650))
+        .unwrap_or(30)
+}
+
+/// Returns the configured log retention in days (for the settings UI).
+#[tauri::command]
+fn get_log_retention(state: State<AppState>) -> u32 {
+    let dir = state.log_dir.lock().unwrap().clone();
+    dir.map(|d| read_retention(&d)).unwrap_or(30)
+}
+
+/// Persists the log retention preference. Takes effect on the next launch,
+/// since the sidecar's file logger is configured when amtd starts.
+#[tauri::command]
+fn set_log_retention(state: State<AppState>, days: u32) -> Result<(), String> {
+    let dir = state
+        .log_dir
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or_else(|| "log directory not available".to_string())?;
+    std::fs::write(retention_file(&dir), days.clamp(1, 3650).to_string())
+        .map_err(|e| e.to_string())
+}
+
 fn random_token() -> String {
     const HEX: &[u8] = b"0123456789abcdef";
     let mut rng = rand::thread_rng();
@@ -106,7 +141,14 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![sidecar_info, log_dir, open_logs, open_external])
+        .invoke_handler(tauri::generate_handler![
+            sidecar_info,
+            log_dir,
+            open_logs,
+            open_external,
+            get_log_retention,
+            set_log_retention
+        ])
         .setup(|app| {
             // Resolve a per-user log directory (falls back to temp).
             let log_dir = app
@@ -128,6 +170,7 @@ pub fn run() {
             }
 
             let token = random_token();
+            let retention = read_retention(&log_dir).to_string();
             let (mut rx, child) = app
                 .shell()
                 .sidecar("amtd")
@@ -139,6 +182,8 @@ pub fn run() {
                     &token,
                     "-log-dir",
                     &log_dir.to_string_lossy(),
+                    "-log-max-age",
+                    &retention,
                 ])
                 .spawn()
                 .expect("failed to spawn amtd sidecar");

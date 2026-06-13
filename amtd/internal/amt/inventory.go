@@ -40,7 +40,6 @@ type ProcessorInfo struct {
 type MemoryInfo struct {
 	BankLabel    string `json:"bankLabel"`
 	CapacityMB   int    `json:"capacityMb"`
-	SpeedMHz     int    `json:"speedMhz"`
 	Type         string `json:"type"`
 	FormFactor   string `json:"formFactor"`
 	Manufacturer string `json:"manufacturer"`
@@ -148,7 +147,6 @@ func (s *Session) Hardware() (Hardware, error) {
 					hw.Memory = append(hw.Memory, MemoryInfo{
 						BankLabel:    mem.BankLabel,
 						CapacityMB:   int(mem.Capacity / (1024 * 1024)),
-						SpeedMHz:     mem.Speed,
 						Type:         mem.MemoryType.String(),
 						FormFactor:   memoryFormFactor[mem.FormFactor],
 						Manufacturer: mem.Manufacturer,

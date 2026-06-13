@@ -55,8 +55,7 @@ Redirection
   compression, mouse + keyboard forwarding, a special-keys menu
   (Ctrl+Alt+Del, Alt+Tab, Alt+F4, Win, function keys, ...), paste-as-keystrokes,
   view-only mode, fit / actual scaling, screenshot, fullscreen, video
-  recording to WebM, a data-activity LED, and an experimental, opt-in masking
-  of the firmware's blinking session indicator (see below).
+  recording to WebM, and a data-activity LED.
 - IDE-R: boot a machine from a local ISO, served as a virtual CD-ROM by the
   sidecar (ATAPI emulation).
 
@@ -65,27 +64,6 @@ Tooling
 - Scheduled wake (Alarm Clock): add / list / remove wake-ups.
 - Logging designed for bug reports (see [Logs and bug reports](#logs-and-bug-reports)),
   an About dialog, and the app version in the window title.
-
-### KVM session indicator masking
-
-While a KVM session is open, the managed PC's Intel ME firmware paints a
-blinking "session active" indicator directly into the framebuffer. This is a
-deliberate privacy feature, and there is no AMT or WS-MAN setting to turn it
-off, so it shows up on the remote image we receive.
-
-The KVM view has an experimental, off-by-default toggle that masks it on our
-canvas only (it does not and cannot change anything on the managed PC). The
-indicator arrives as tile updates that repeat at the same screen coordinates on
-a periodic cadence, alternating between the lit icon and the real desktop
-underneath. MeshManager detects that two-state blink near a screen edge, keeps
-the calmer (desktop) phase, and re-paints it over the lit phase. A swap button
-appears once an indicator is detected, to flip which phase is hidden if the
-automatic guess is wrong.
-
-Because it is a heuristic it may need tuning per firmware version and
-resolution: the indicator can flash a couple of times before the detector locks
-on, and the masked region may look briefly frozen if content directly under the
-icon is changing. Detection is logged as `kvm: session indicator detected`.
 
 ## Architecture
 
@@ -228,20 +206,27 @@ go build -o amtd.exe .
 ## Logs and bug reports
 
 Everything logs to one place so a tester can attach a single folder to a report.
+Logs are appended across sessions and rotated, not cleared on each run.
 
-- The sidecar writes rotating `amtd.log` files (5 MB each, 5 kept, gzipped):
-  startup environment, one line per HTTP request (failures at warn / error),
-  connect results, and AMT operation errors.
-- The Tauri shell tees the sidecar's stdout and stderr to `shell.log` as a
+- The sidecar writes rotating `amtd.log` files (5 MB each, gzipped, up to 20
+  kept) holding the startup environment, one line per HTTP request (failures at
+  warn / error), connect results, and AMT operation errors. Rotated files are
+  retained for a configurable number of days (default 30).
+- The Tauri shell appends the sidecar's stdout and stderr to `shell.log` as a
   safety net for crashes that happen before the sidecar can write its own log.
 - The frontend forwards `window.onerror`, unhandled promise rejections, and API
   failures to the sidecar, so UI errors appear in `amtd.log` tagged `src=ui`
   with a stack trace.
 
+Retention is adjustable: the Add Device dialog has a "Keep logs for (days)"
+field. Because the sidecar's file logger starts with the app, a change takes
+effect on the next launch.
+
 In the packaged app the log folder is at
 `%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`. Click the Logs button in the
 sidebar footer to open it. When running the sidecar standalone, pass
-`-log-dir <path>` (omit it to log to stderr only).
+`-log-dir <path>` (omit it to log to stderr only) and optionally
+`-log-max-age <days>` / `-log-max-backups <n>`.
 
 ## Project layout
 

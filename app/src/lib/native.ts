@@ -22,6 +22,17 @@ export async function openLogs(): Promise<void> {
   await invokeTauri("open_logs");
 }
 
+/** Reads the configured log retention in days (Tauri only; default 30). */
+export async function getLogRetention(): Promise<number> {
+  const days = await invokeTauri<number>("get_log_retention");
+  return typeof days === "number" ? days : 30;
+}
+
+/** Persists the log retention preference in days. Applies on next launch. */
+export async function setLogRetention(days: number): Promise<void> {
+  await invokeTauri("set_log_retention", { days });
+}
+
 /** Opens a URL in the default browser (Tauri command, or a new tab in dev). */
 export async function openExternal(url: string): Promise<void> {
   if (isTauri()) {

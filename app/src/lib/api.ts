@@ -67,7 +67,6 @@ export interface Hardware {
   memory: {
     bankLabel: string;
     capacityMb: number;
-    speedMhz: number;
     type: string;
     formFactor: string;
     manufacturer: string;

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { api, ApiError, type ConnectParams } from "../lib/api";
 import { useUi } from "../store";
 import { useBookmarks } from "../lib/bookmarks";
+import { isTauri, getLogRetention, setLogRetention } from "../lib/native";
 import { Button, Field, Input } from "../lib/ui";
 
 export function ConnectDialog() {
@@ -26,6 +27,13 @@ export function ConnectDialog() {
     insecure: prefill?.insecure ?? true,
   });
   const [remember, setRemember] = useState(!!prefill?.password);
+
+  // Global desktop setting: how many days of rotated logs amtd keeps. Applies
+  // on the next launch since the sidecar's file logger starts with the app.
+  const [logDays, setLogDays] = useState<number | null>(null);
+  useEffect(() => {
+    if (isTauri()) void getLogRetention().then(setLogDays);
+  }, []);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -146,6 +154,28 @@ export function ConnectDialog() {
               Remember password
             </label>
           </div>
+
+          {logDays != null && (
+            <div className="grid grid-cols-[1fr_110px] items-center gap-3 border-t border-(--color-border) pt-3">
+              <div>
+                <div className="text-sm">Keep logs for</div>
+                <div className="text-xs text-(--color-muted)">Rotated log retention. Applies on next launch.</div>
+              </div>
+              <Field label="Days">
+                <Input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={logDays}
+                  onChange={(e) => {
+                    const d = Math.min(3650, Math.max(1, Number(e.target.value) || 30));
+                    setLogDays(d);
+                    void setLogRetention(d);
+                  }}
+                />
+              </Field>
+            </div>
+          )}
 
           {connect.isError && (
             <div className="rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">

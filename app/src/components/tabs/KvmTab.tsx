@@ -11,8 +11,6 @@ import {
   Minimize2,
   Video,
   ChevronDown,
-  EyeOff,
-  ArrowLeftRight,
 } from "lucide-react";
 import { wsUrl } from "../../lib/api";
 import {
@@ -69,9 +67,6 @@ export function KvmTab({ id }: { id: string }) {
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  // Hide the firmware's blinking session indicator (experimental, opt-in).
-  const [maskIndicator, setMaskIndicator] = useState(false);
-  const [indicatorFound, setIndicatorFound] = useState(false);
   // Data-activity LED: lights up while screen data is arriving, dims when idle.
   const [active, setActive] = useState(false);
   const activeTimer = useRef<number | null>(null);
@@ -122,13 +117,6 @@ export function KvmTab({ id }: { id: string }) {
     }
   }
 
-  function toggleMaskIndicator() {
-    const next = !maskIndicator;
-    setMaskIndicator(next);
-    clientRef.current?.setMaskIndicator(next);
-    if (!next) setIndicatorFound(false);
-  }
-
   function screenshot() {
     const url = canvasRef.current?.toDataURL("image/png");
     if (!url) return;
@@ -170,10 +158,7 @@ export function KvmTab({ id }: { id: string }) {
       },
       { colorDepth, compression },
     );
-    client.setIndicatorListener(setIndicatorFound);
-    if (maskIndicator) client.setMaskIndicator(true);
     clientRef.current = client;
-    setIndicatorFound(false);
 
     const url = await wsUrl(`/api/devices/${id}/kvm`);
     const ws = new WebSocket(url);
@@ -270,21 +255,6 @@ export function KvmTab({ id }: { id: string }) {
                 <input type="checkbox" checked={viewOnly} onChange={(e) => setViewOnly(e.target.checked)} />
                 View only
               </label>
-              <Button
-                onClick={toggleMaskIndicator}
-                variant={maskIndicator ? "primary" : "default"}
-                title={
-                  "Hide the managed PC's blinking session indicator (experimental). " +
-                  "It is painted by firmware, so this masks it on our view only."
-                }
-              >
-                <EyeOff className="h-4 w-4" />
-              </Button>
-              {maskIndicator && indicatorFound && (
-                <Button onClick={() => clientRef.current?.swapIndicatorPhase()} title="Hiding the wrong thing? Swap which phase is masked">
-                  <ArrowLeftRight className="h-4 w-4" />
-                </Button>
-              )}
               <Button onClick={() => setActualSize((v) => !v)} title="Toggle fit / actual size">
                 {actualSize ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>

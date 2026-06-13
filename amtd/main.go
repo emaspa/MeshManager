@@ -32,10 +32,12 @@ var Version = "0.1.0-dev"
 
 func main() {
 	var (
-		addr   = flag.String("addr", "127.0.0.1:0", "address to listen on (port 0 = OS-assigned)")
-		token  = flag.String("token", "", "bearer token required on every request; empty disables auth (dev only)")
-		debug  = flag.Bool("debug", false, "enable debug logging, including raw AMT message tracing")
-		logDir = flag.String("log-dir", "", "directory for rotating log files; logs to stderr only if empty")
+		addr       = flag.String("addr", "127.0.0.1:0", "address to listen on (port 0 = OS-assigned)")
+		token      = flag.String("token", "", "bearer token required on every request; empty disables auth (dev only)")
+		debug      = flag.Bool("debug", false, "enable debug logging, including raw AMT message tracing")
+		logDir     = flag.String("log-dir", "", "directory for rotating log files; logs to stderr only if empty")
+		logMaxAge  = flag.Int("log-max-age", 30, "days to retain rotated log files (0 = keep until count/size limits)")
+		logBackups = flag.Int("log-max-backups", 20, "max number of rotated log files to keep")
 	)
 	flag.Parse()
 
@@ -54,8 +56,8 @@ func main() {
 			w = io.MultiWriter(os.Stderr, &lumberjack.Logger{
 				Filename:   logFile,
 				MaxSize:    5, // megabytes per file
-				MaxBackups: 5,
-				MaxAge:     30, // days
+				MaxBackups: *logBackups,
+				MaxAge:     *logMaxAge, // days
 				Compress:   true,
 			})
 		} else {
