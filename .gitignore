@@ -1,0 +1,25 @@
+# Go
+amtd/amtd
+amtd/amtd.exe
+*.test
+
+# Node / frontend
+app/node_modules/
+app/dist/
+app/.vite/
+
+# Rust / Tauri
+app/src-tauri/target/
+app/src-tauri/binaries/
+app/src-tauri/gen/
+
+# Logs & scratch
+*.log
+out.log
+err.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

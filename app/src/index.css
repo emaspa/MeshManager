@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Dark, console-style theme tokens. */
+@theme {
+  --color-bg: #0b0e14;
+  --color-panel: #11151f;
+  --color-panel-2: #161b27;
+  --color-border: #232a3a;
+  --color-muted: #7c8aa5;
+  --color-text: #e4e9f2;
+  --color-accent: #4c8dff;
+  --color-accent-2: #2f6bd6;
+  --color-good: #3ddc97;
+  --color-warn: #ffb454;
+  --color-bad: #ff5f6d;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+input,
+textarea {
+  user-select: text;
+}

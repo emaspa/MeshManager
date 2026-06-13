@@ -1,0 +1,144 @@
+import { sidecar } from "./sidecar";
+
+// --- Types mirrored from the Go sidecar JSON responses ---
+
+export interface Device {
+  id: string;
+  host: string;
+  port: number;
+  name: string;
+  tls: boolean;
+  username: string;
+  createdAt: string;
+}
+
+export interface ConnectParams {
+  host: string;
+  port?: number;
+  username: string;
+  password: string;
+  tls?: boolean;
+  insecure?: boolean;
+  name?: string;
+}
+
+export interface DeviceInfo {
+  uuid: string;
+  hostname: string;
+  domainName: string;
+  digestRealm: string;
+  networkEnabled: boolean;
+  versions: Record<string, string>;
+  provisioningState: string;
+  controlMode: string;
+}
+
+export interface PowerStatus {
+  state: number;
+  stateName: string;
+  on: boolean;
+}
+
+export interface Hardware {
+  system: {
+    manufacturer: string;
+    model: string;
+    serialNumber: string;
+    version: string;
+    chassisType: number;
+  };
+  processors: {
+    id: string;
+    family: number;
+    maxClockMhz: number;
+    currentClockMhz: number;
+    upgradeMethod: number;
+  }[];
+  memory: {
+    bankLabel: string;
+    capacityMb: number;
+    speedMhz: number;
+    memoryType: number;
+    manufacturer: string;
+    partNumber: string;
+    serialNumber: string;
+  }[];
+  disks: { deviceId: string; maxMediaKb: number; elementName: string }[];
+}
+
+export interface EventLogEntry {
+  time: string;
+  description: string;
+  entity: string;
+  severity: string;
+}
+
+export interface AuditLogEntry {
+  time: string;
+  app: string;
+  event: string;
+  initiator: string;
+  netAddress: string;
+  extended: string;
+}
+
+export type PowerAction =
+  | "on"
+  | "off"
+  | "off-graceful"
+  | "reset"
+  | "reset-graceful"
+  | "cycle"
+  | "sleep"
+  | "hibernate"
+  | "nmi";
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const { baseUrl, token } = await sidecar();
+  const headers = new Headers(init?.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (init?.body) headers.set("Content-Type", "application/json");
+
+  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    throw new ApiError(res.status, data?.error ?? res.statusText);
+  }
+  return data as T;
+}
+
+export const api = {
+  health: () => req<{ ok: boolean; version: string }>("/api/health"),
+  listDevices: () => req<Device[]>("/api/devices"),
+  connect: (p: ConnectParams) =>
+    req<Device>("/api/connect", { method: "POST", body: JSON.stringify(p) }),
+  disconnect: (id: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/disconnect`, { method: "POST" }),
+  info: (id: string) => req<DeviceInfo>(`/api/devices/${id}/info`),
+  powerState: (id: string) => req<PowerStatus>(`/api/devices/${id}/power`),
+  power: (id: string, action: PowerAction) =>
+    req<{ ok: boolean; returnValue: number }>(`/api/devices/${id}/power`, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    }),
+  hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
+  eventLog: (id: string) => req<EventLogEntry[]>(`/api/devices/${id}/eventlog`),
+  auditLog: (id: string) => req<AuditLogEntry[]>(`/api/devices/${id}/auditlog`),
+};
+
+// WebSocket URL builder for redirection (SOL/KVM), token via query param.
+export async function wsUrl(path: string): Promise<string> {
+  const { baseUrl, token } = await sidecar();
+  const u = new URL(baseUrl);
+  u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+  u.pathname = path;
+  if (token) u.searchParams.set("access_token", token);
+  return u.toString();
+}
