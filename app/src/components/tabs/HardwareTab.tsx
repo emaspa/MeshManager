@@ -20,6 +20,8 @@ export function HardwareTab({ id }: { id: string }) {
           <KV k="Model" v={d.system.model} />
           <KV k="Serial" v={d.system.serialNumber} />
           <KV k="Version" v={d.system.version} />
+          <KV k="BIOS Vendor" v={d.bios?.vendor ?? ""} />
+          <KV k="BIOS Version" v={d.bios?.version ?? ""} />
         </div>
       </Card>
 

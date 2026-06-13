@@ -32,6 +32,9 @@ export interface DeviceInfo {
   versions: Record<string, string>;
   provisioningState: string;
   controlMode: string;
+  activeFeatures: string[];
+  userConsent: string;
+  deviceTime: string;
 }
 
 export interface PowerStatus {
@@ -48,6 +51,7 @@ export interface Hardware {
     version: string;
     chassisType: number;
   };
+  bios: { vendor: string; version: string };
   processors: {
     id: string;
     family: number;

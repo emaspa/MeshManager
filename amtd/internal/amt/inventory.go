@@ -6,10 +6,16 @@ import (
 
 // Hardware is the consolidated hardware inventory for a device.
 type Hardware struct {
-	System    SystemInfo     `json:"system"`
+	System     SystemInfo      `json:"system"`
+	BIOS       BIOSInfo        `json:"bios"`
 	Processors []ProcessorInfo `json:"processors"`
-	Memory    []MemoryInfo   `json:"memory"`
-	Disks     []DiskInfo     `json:"disks"`
+	Memory     []MemoryInfo    `json:"memory"`
+	Disks      []DiskInfo      `json:"disks"`
+}
+
+type BIOSInfo struct {
+	Vendor  string `json:"vendor"`
+	Version string `json:"version"`
 }
 
 type SystemInfo struct {
@@ -48,6 +54,12 @@ type DiskInfo struct {
 func (s *Session) Hardware() (Hardware, error) {
 	var hw Hardware
 	err := s.withWSMAN(func(m *wsman.Messages) error {
+		// BIOS.
+		if resp, err := m.CIM.BIOSElement.Get(); err == nil {
+			b := resp.Body.BIOSElementGetResponse
+			hw.BIOS = BIOSInfo{Vendor: b.Manufacturer, Version: b.Version}
+		}
+
 		// Chassis -> system identity.
 		if enum, err := m.CIM.Chassis.Enumerate(); err == nil {
 			if pull, err := m.CIM.Chassis.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {

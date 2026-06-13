@@ -10,14 +10,18 @@ export function Overview({ id }: { id: string }) {
     return <Centered><span className="text-(--color-bad)">{(info.error as Error).message}</span></Centered>;
 
   const d = info.data!;
+  const amt = d.versions["AMT"] || d.versions["AMTApps"];
+  const me = amt ? `v${amt}${d.controlMode ? ` · ${d.controlMode}` : ""}` : d.controlMode || "-";
   const rows: [string, string][] = [
     ["Hostname", d.hostname || "-"],
     ["Domain", d.domainName || "-"],
-    ["UUID", d.uuid || "-"],
-    ["Digest Realm", d.digestRealm || "-"],
-    ["Control Mode", d.controlMode || "-"],
+    ["System ID (UUID)", d.uuid || "-"],
+    ["Intel ME", me],
     ["Provisioning", d.provisioningState || "-"],
+    ["User Consent", d.userConsent || "-"],
     ["Network", d.networkEnabled ? "Enabled" : "Disabled"],
+    ["Device Time", d.deviceTime || "-"],
+    ["Digest Realm", d.digestRealm || "-"],
   ];
 
   return (
@@ -32,6 +36,16 @@ export function Overview({ id }: { id: string }) {
             </div>
           ))}
         </dl>
+        {d.activeFeatures?.length > 0 && (
+          <div className="mt-3 border-t border-(--color-border) pt-3">
+            <div className="mb-2 text-(--color-muted)">Active Features</div>
+            <div className="flex flex-wrap gap-1">
+              {d.activeFeatures.map((f) => (
+                <span key={f} className="rounded bg-(--color-good)/15 px-2 py-0.5 text-xs text-(--color-good)">{f}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
 
       <Card>
