@@ -37,7 +37,15 @@ body {
   scrollbar-color: var(--color-border) transparent;
 }
 
+/* The native-app feel disables text selection globally (on body), but data the
+   user needs to copy must stay selectable: form fields, code/JSON blocks, and
+   data tables/definition lists (serials, UUIDs, log lines, WS-MAN output). */
 input,
-textarea {
+textarea,
+pre,
+code,
+table,
+dl {
   user-select: text;
+  -webkit-user-select: text;
 }
