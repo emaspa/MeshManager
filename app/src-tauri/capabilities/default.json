@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Core permissions for the main window. The amtd sidecar is spawned from Rust, so no JS shell permissions are required.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "dialog:allow-open"]
 }

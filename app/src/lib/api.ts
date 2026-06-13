@@ -104,6 +104,14 @@ export interface Discovered {
   isAmt: boolean;
 }
 
+export interface IderStats {
+  connected: boolean;
+  bytesToAmt: number;
+  sectorsRead: number;
+  isoSize: number;
+  error: string;
+}
+
 export type PowerAction =
   | "on"
   | "off"
@@ -162,6 +170,15 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  iderStart: (id: string, isoPath: string, boot: boolean) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/ider/start`, {
+      method: "POST",
+      body: JSON.stringify({ isoPath, boot }),
+    }),
+  iderStop: (id: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/ider/stop`, { method: "POST" }),
+  iderStatus: (id: string) =>
+    req<{ active: boolean; stats: IderStats }>(`/api/devices/${id}/ider/status`),
   eventLog: (id: string) => req<EventLogEntry[]>(`/api/devices/${id}/eventlog`),
   auditLog: (id: string) => req<AuditLogEntry[]>(`/api/devices/${id}/auditlog`),
 };

@@ -154,6 +154,36 @@ func (s *Server) handleEventLog(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, log)
 }
 
+func (s *Server) handleIDERStart(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ISOPath string `json:"isoPath"`
+		Boot    bool   `json:"boot"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if body.ISOPath == "" {
+		writeError(w, http.StatusBadRequest, "isoPath is required")
+		return
+	}
+	if err := sessionFrom(r).StartIDER(body.ISOPath, body.Boot); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleIDERStop(w http.ResponseWriter, r *http.Request) {
+	sessionFrom(r).StopIDER()
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleIDERStatus(w http.ResponseWriter, r *http.Request) {
+	stats, active := sessionFrom(r).IDERStatus()
+	writeJSON(w, http.StatusOK, map[string]any{"active": active, "stats": stats})
+}
+
 func (s *Server) handleAuditLog(w http.ResponseWriter, r *http.Request) {
 	log, err := sessionFrom(r).AuditLog()
 	if err != nil {

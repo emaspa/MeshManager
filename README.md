@@ -84,10 +84,14 @@ API surface (all under `/api`, bearer-token auth except `/health`):
 | POST | `/devices/{id}/disconnect` | drop a session |
 | GET | `/devices/{id}/info` | identity, general settings, firmware versions |
 | GET / POST | `/devices/{id}/power` | read power state / request change `{action}` |
+| POST | `/devices/{id}/boot` | one-time boot `{device, power}` (pxe/cd/hdd/bios) |
 | GET | `/devices/{id}/hardware` | CPU, memory, disk, chassis inventory |
-| GET | `/devices/{id}/eventlog` | decoded firmware event log |
-| GET | `/devices/{id}/auditlog` | decoded audit log |
-| WS | `/devices/{id}/sol` · `/kvm` | redirection (in progress) |
+| GET | `/devices/{id}/network` | AMT ethernet interfaces (IP/DHCP/MAC/DNS) |
+| GET | `/devices/{id}/eventlog` · `/auditlog` | decoded firmware event / audit logs |
+| POST | `/devices/{id}/ider/start` · `/stop` | mount/eject a remote ISO `{isoPath, boot}` |
+| GET | `/devices/{id}/ider/status` | IDE-R transfer stats |
+| POST | `/discover` | subnet scan `{cidr, port, tls}` |
+| WS | `/devices/{id}/sol` · `/kvm` | Serial-over-LAN · KVM redirection |
 
 Power actions: `on`, `off`, `off-graceful`, `reset`, `reset-graceful`,
 `cycle`, `sleep`, `hibernate`, `nmi`.
@@ -100,9 +104,12 @@ Power actions: `on`, `off`, `off-graceful`, `reset`, `reset-graceful`,
 - [x] Serial-over-LAN terminal (xterm.js over the redirection channel)
 - [x] Tauri desktop shell (sidecar spawn + token handoff)
 - [x] KVM remote desktop (AMT RFB framebuffer decode + mouse/keyboard forwarding)
-- [ ] IDE-R (boot from remote ISO)
-- [ ] Account & certificate management, network / system-defense config
-- [ ] Device discovery (mDNS / subnet scan)
+- [x] Boot control (one-time boot to PXE / CD / HDD / BIOS setup)
+- [x] IDE-R (boot from remote ISO — ATAPI CD-ROM emulation in the sidecar)
+- [x] Network info panel (AMT_EthernetPortSettings)
+- [x] Device discovery (subnet / CIDR scan with AMT server-header check)
+- [ ] Account & certificate management (blocked on go-wsman-messages add-user support)
+- [ ] Wireless config, system-defense, alarm clock
 - [ ] Tauri packaging/signing polish
 
 ## License

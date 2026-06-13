@@ -49,6 +49,9 @@ type Session struct {
 	mu  sync.Mutex      `json:"-"`
 	wsman wsman.Messages `json:"-"`
 	params ConnectParams `json:"-"`
+
+	iderMu sync.Mutex     `json:"-"`
+	ider   *redirect.IDER `json:"-"`
 }
 
 // RedirectionTarget returns the connection details for the binary redirection
@@ -170,19 +173,26 @@ func (m *SessionManager) List() []*Session {
 // Disconnect removes a session. Returns false if it did not exist.
 func (m *SessionManager) Disconnect(id string) bool {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if _, ok := m.sessions[id]; !ok {
-		return false
+	sess, ok := m.sessions[id]
+	if ok {
+		delete(m.sessions, id)
 	}
-	delete(m.sessions, id)
-	return true
+	m.mu.Unlock()
+	if ok {
+		sess.StopIDER() // tear down any active IDE-R session
+	}
+	return ok
 }
 
 // CloseAll drops every session (used on shutdown).
 func (m *SessionManager) CloseAll() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	old := m.sessions
 	m.sessions = make(map[string]*Session)
+	m.mu.Unlock()
+	for _, s := range old {
+		s.StopIDER()
+	}
 }
 
 func newID() string {

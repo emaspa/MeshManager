@@ -49,6 +49,9 @@ func (s *Server) Router() http.Handler {
 		r.Get("/network", s.handleNetwork)
 		r.Get("/eventlog", s.handleEventLog)
 		r.Get("/auditlog", s.handleAuditLog)
+		r.Post("/ider/start", s.handleIDERStart)
+		r.Post("/ider/stop", s.handleIDERStop)
+		r.Get("/ider/status", s.handleIDERStatus)
 		r.Get("/sol", s.handleSOL)   // WebSocket
 		r.Get("/kvm", s.handleKVM)   // WebSocket
 	})

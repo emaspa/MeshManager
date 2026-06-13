@@ -12,6 +12,7 @@ import {
   MonitorSmartphone,
   LayoutDashboard,
   Network,
+  Disc,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
@@ -23,6 +24,7 @@ import { EventLogTab } from "./tabs/EventLogTab";
 import { AuditLogTab } from "./tabs/AuditLogTab";
 import { SerialTab } from "./tabs/SerialTab";
 import { KvmTab } from "./tabs/KvmTab";
+import { IderTab } from "./tabs/IderTab";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -32,6 +34,7 @@ const TABS = [
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
   { id: "serial", label: "Serial", icon: TerminalSquare },
   { id: "kvm", label: "Remote Desktop", icon: MonitorSmartphone },
+  { id: "ider", label: "Boot Media", icon: Disc },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -185,6 +188,7 @@ export function DeviceView({ id }: { id: string }) {
         {tab === "audit" && <AuditLogTab id={id} />}
         {tab === "serial" && <SerialTab id={id} />}
         {tab === "kvm" && <KvmTab id={id} />}
+        {tab === "ider" && <IderTab id={id} />}
       </div>
     </div>
   );
