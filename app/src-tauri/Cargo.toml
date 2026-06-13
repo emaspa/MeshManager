@@ -1,6 +1,6 @@
 [package]
 name = "meshmanager"
-version = "0.1.0"
+version = "0.1.1"
 description = "Modern Intel AMT / vPro management console"
 authors = ["emaspa"]
 edition = "2021"
