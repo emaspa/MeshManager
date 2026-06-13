@@ -13,7 +13,7 @@ $out = "$root\app\src-tauri\binaries\amtd-$triple.exe"
 Write-Host "Building amtd sidecar → $out" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force "$root\app\src-tauri\binaries" | Out-Null
 Push-Location "$root\amtd"
-go build -ldflags "-s -w -X main.Version=0.1.0" -o $out .
+go build -ldflags "-s -w -X main.Version=0.1.1" -o $out .
 Pop-Location
 
 Write-Host "Bundling Tauri app…" -ForegroundColor Cyan

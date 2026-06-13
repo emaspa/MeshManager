@@ -16,7 +16,7 @@ out="$root/app/src-tauri/binaries/amtd-$triple"
 
 echo "Building amtd sidecar → $out"
 mkdir -p "$root/app/src-tauri/binaries"
-( cd "$root/amtd" && go build -ldflags "-s -w -X main.Version=0.1.0" -o "$out" . )
+( cd "$root/amtd" && go build -ldflags "-s -w -X main.Version=0.1.1" -o "$out" . )
 
 echo "Installing frontend dependencies…"
 ( cd "$root/app" && npm install )
