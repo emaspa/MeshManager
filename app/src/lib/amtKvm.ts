@@ -33,6 +33,23 @@ export interface KvmOptions {
 
 export const DEFAULT_KVM_OPTIONS: KvmOptions = { colorDepth: "16", compression: "none" };
 
+// Per-coordinate bookkeeping used to detect and mask the firmware's blinking
+// "KVM session active" indicator. The indicator is painted into the framebuffer
+// by Intel ME, so it arrives as ordinary tile updates that repeat at the same
+// coordinates on a regular cadence, alternating between exactly two images:
+// the icon ("lit") and the real desktop underneath it ("off"). We keep the
+// desktop image and re-paint it over the lit phase.
+interface KvmRegion {
+  count: number;
+  last: number; // ms timestamp of the previous update
+  intervals: number[]; // recent inter-update gaps (ms)
+  candidate: boolean; // repeated + periodic -> worth hashing
+  detected: boolean; // settled into a 2-state blink
+  keepSig: number | null; // signature of the phase we display
+  // signature -> stats for that phase (occurrences, luma variance, last clean bitmap)
+  sigs: Map<number, { n: number; variance: number; img: ImageData | null }>;
+}
+
 export class AmtKvmClient {
   private ctx: CanvasRenderingContext2D;
   private send: (b: Uint8Array) => void;
@@ -62,6 +79,12 @@ export class AmtKvmClient {
   private totalBytes = 0;
   private fbUpdates = 0;
   private loggedFirstData = false;
+
+  // Session-indicator masking (off by default).
+  private maskOn = false;
+  private regions = new Map<string, KvmRegion>();
+  private indicatorFound = false;
+  private onIndicator?: (found: boolean) => void;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -245,7 +268,7 @@ export class AmtKvmClient {
         this.setPixel(this.bpp === 2 ? acc[ptr] + (acc[ptr + 1] << 8) : acc[ptr], i);
         ptr += this.bpp;
       }
-      this.putImage(x, y);
+      this.commitTile(x, y, width, height);
       cmdsize = cs;
     } else if (encoding === 16) {
       // AMT RLE: 4-byte length then raw-DEFLATE stream of LRE data.
@@ -311,11 +334,12 @@ export class AmtKvmClient {
     if (sub === 0) {
       // RAW within LRE.
       for (let i = 0; i < s; i++) this.setPixel(readPx(), i);
-      this.putImage(x, y);
+      this.commitTile(x, y, width, height);
     } else if (sub === 1) {
-      // Solid color tile.
-      this.ctx.fillStyle = this.colorCss(readPx());
-      this.ctx.fillRect(x, y, width, height);
+      // Solid color tile. Fill the spare so it flows through commitTile (which
+      // may need the pixels for indicator masking) rather than a bare fillRect.
+      this.setPixelRun(readPx(), 0, s);
+      this.commitTile(x, y, width, height);
     } else if (sub > 1 && sub < 17) {
       // Packed palette.
       const palette: number[] = [];
@@ -327,7 +351,7 @@ export class AmtKvmClient {
         const v = data[ptr++];
         for (let i = 8 - br; i >= 0; i -= br) this.setPixel(palette[(v >> i) & bm], rle++);
       }
-      this.putImage(x, y);
+      this.commitTile(x, y, width, height);
     } else if (sub === 128) {
       // RLE run-length tile.
       let rle = 0;
@@ -338,7 +362,7 @@ export class AmtKvmClient {
         this.setPixelRun(v, rle, runlength);
         rle += runlength;
       }
-      this.putImage(x, y);
+      this.commitTile(x, y, width, height);
     } else if (sub > 129) {
       // Palette RLE.
       const palette: number[] = [];
@@ -355,7 +379,7 @@ export class AmtKvmClient {
         this.setPixelRun(v, rle, runlength);
         rle += runlength;
       }
-      this.putImage(x, y);
+      this.commitTile(x, y, width, height);
     }
   }
 
@@ -422,20 +446,168 @@ export class AmtKvmClient {
     }
   }
 
-  /** CSS color string for a solid-fill tile in the active format. */
-  private colorCss(v: number): string {
-    if (this.graymode) {
-      const g = this.lowcolor ? v << 4 : v;
-      return `rgb(${g},${g},${g})`;
+  // --- session-indicator masking ---
+
+  /** Enable or disable masking of the firmware's blinking session indicator. */
+  setMaskIndicator(on: boolean) {
+    this.maskOn = on;
+    this.regions.clear();
+    if (this.indicatorFound) {
+      this.indicatorFound = false;
+      this.onIndicator?.(false);
     }
-    if (this.bpp === 1) {
-      return `rgb(${v & 224},${(v & 28) << 3},${fixColor((v & 3) << 6)})`;
-    }
-    return rgb565(v);
+    // Repaint everything so a previously suppressed icon (or a frozen desktop
+    // patch) is brought back in sync with reality.
+    if (this.state >= 4) this.sendRefresh();
   }
 
-  private putImage(x: number, y: number) {
+  /** Register a callback fired when a blinking indicator is (un)detected. */
+  setIndicatorListener(cb: (found: boolean) => void) {
+    this.onIndicator = cb;
+  }
+
+  /** Flip which blink phase is hidden, for when the auto-guess kept the icon. */
+  swapIndicatorPhase() {
+    for (const r of this.regions.values()) {
+      if (!r.detected || r.sigs.size < 2) continue;
+      const other = [...r.sigs.keys()].find((sig) => sig !== r.keepSig);
+      if (other != null) {
+        r.keepSig = other;
+        for (const e of r.sigs.values()) e.img = null; // re-snapshot the new clean phase
+      }
+    }
+    if (this.state >= 4) this.sendRefresh();
+  }
+
+  /** Commit the current spare tile to the canvas, masking the indicator if on. */
+  private commitTile(x: number, y: number, w: number, h: number) {
+    if (!this.maskOn) {
+      this.ctx.putImageData(this.spare!, x, y);
+      return;
+    }
+    this.maskCommit(x, y, w, h);
+  }
+
+  private maskCommit(x: number, y: number, w: number, h: number) {
+    const key = x + "," + y;
+    const now = Date.now();
+    let r = this.regions.get(key);
+    if (!r) {
+      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, keepSig: null, sigs: new Map() };
+      this.regions.set(key, r);
+    }
+    r.count++;
+    if (r.last) {
+      r.intervals.push(now - r.last);
+      if (r.intervals.length > 8) r.intervals.shift();
+    }
+    r.last = now;
+
+    // Promote to candidate only once a tile near a screen edge has repeated on a
+    // periodic cadence. The edge constraint excludes most blinking text carets.
+    if (!r.candidate && r.count >= 4 && this.edgeNear(x, y, w, h) && this.periodic(r.intervals)) {
+      r.candidate = true;
+    }
+    if (!r.candidate) {
+      this.ctx.putImageData(this.spare!, x, y);
+      return;
+    }
+
+    const sig = this.tileSig();
+    let se = r.sigs.get(sig);
+    if (!se) {
+      se = { n: 0, variance: this.tileVariance(), img: null };
+      r.sigs.set(sig, se);
+    }
+    se.n++;
+
+    // More than two recurring images means this is real content, not a 2-state
+    // blink. Abandon the region and let it draw normally.
+    if (r.sigs.size > 2) {
+      this.regions.delete(key);
+      this.ctx.putImageData(this.spare!, x, y);
+      return;
+    }
+
+    if (!r.detected && r.sigs.size === 2) {
+      const vals = [...r.sigs.values()];
+      if (vals.every((v) => v.n >= 2)) {
+        r.detected = true;
+        // Keep the calmer (lower luma variance) phase: the plain desktop, not
+        // the busier overlay icon.
+        const entries = [...r.sigs.entries()];
+        r.keepSig = entries[0][1].variance <= entries[1][1].variance ? entries[0][0] : entries[1][0];
+        if (!this.indicatorFound) {
+          this.indicatorFound = true;
+          this.onIndicator?.(true);
+          void clientLog("info", `kvm: session indicator detected at ${key} (${w}x${h})`, "kvm");
+        }
+      }
+    }
+
+    if (r.detected) {
+      if (sig === r.keepSig) {
+        this.ctx.putImageData(this.spare!, x, y);
+        se.img = this.cloneSpare(); // remember this clean patch
+      } else {
+        const keep = r.keepSig != null ? r.sigs.get(r.keepSig) : null;
+        if (keep?.img) this.ctx.putImageData(keep.img, x, y); // re-paint desktop over the icon
+        // else: nothing clean cached yet, so just drop the icon tile
+      }
+      return;
+    }
+
+    // Candidate but not yet settled: draw normally for now.
     this.ctx.putImageData(this.spare!, x, y);
+  }
+
+  private edgeNear(x: number, y: number, w: number, h: number): boolean {
+    const m = 160; // indicator sits within this many px of a screen edge
+    return x <= m || y <= m || x + w >= this.width - m || y + h >= this.height - m;
+  }
+
+  private periodic(intervals: number[]): boolean {
+    if (intervals.length < 3) return false;
+    let mn = Infinity, mx = 0;
+    for (const v of intervals) {
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    return mn >= 120 && mx <= 2500 && mx <= mn * 4;
+  }
+
+  /** FNV-1a hash over the current spare tile's RGB bytes. */
+  private tileSig(): number {
+    const d = this.spare!.data;
+    let hash = 0x811c9dc5 >>> 0;
+    for (let i = 0; i < d.length; i += 4) {
+      hash = Math.imul(hash ^ d[i], 0x01000193);
+      hash = Math.imul(hash ^ d[i + 1], 0x01000193);
+      hash = Math.imul(hash ^ d[i + 2], 0x01000193);
+    }
+    return hash >>> 0;
+  }
+
+  /** Sampled luma variance of the current spare tile. */
+  private tileVariance(): number {
+    const d = this.spare!.data;
+    let n = 0, sum = 0, sum2 = 0;
+    for (let i = 0; i < d.length; i += 16) {
+      const l = (d[i] * 77 + d[i + 1] * 151 + d[i + 2] * 28) >> 8;
+      sum += l;
+      sum2 += l * l;
+      n++;
+    }
+    if (!n) return 0;
+    const mean = sum / n;
+    return sum2 / n - mean * mean;
+  }
+
+  private cloneSpare(): ImageData {
+    const s = this.spare!;
+    const c = this.ctx.createImageData(s.width, s.height);
+    c.data.set(s.data);
+    return c;
   }
 
   /** Sends a SetPixelFormat (RFB type 0) for the chosen depth. RGB565 is the
@@ -521,10 +693,6 @@ export class AmtKvmClient {
     void clientLog("error", `kvm: ${detail} (state=${this.state}, bytes=${this.totalBytes})`, "kvm");
     this.onState("error", detail);
   }
-}
-
-function rgb565(v: number): string {
-  return `rgb(${(v >> 8) & 248},${(v >> 3) & 252},${(v & 31) << 3})`;
 }
 
 // RGB332 blue channel correction (matches MeshCommander's _fixColor).
