@@ -1,10 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { MonitorSmartphone, Play, Square, Keyboard } from "lucide-react";
 import { wsUrl } from "../../lib/api";
-import { AmtKvmClient, amtKeyFromEvent } from "../../lib/amtKvm";
+import {
+  AmtKvmClient,
+  amtKeyFromEvent,
+  type ColorDepth,
+  type Compression,
+} from "../../lib/amtKvm";
 import { Badge, Button } from "../../lib/ui";
 
 type State = "idle" | "connecting" | "running" | "error" | "closed";
+
+const COLOR_DEPTHS: { value: ColorDepth; label: string }[] = [
+  { value: "16", label: "16-bit color (best)" },
+  { value: "8", label: "8-bit color (faster)" },
+  { value: "gray8", label: "8-bit grayscale" },
+  { value: "gray4", label: "4-bit grayscale (fastest)" },
+];
+const COMPRESSIONS: { value: Compression; label: string }[] = [
+  { value: "none", label: "None (RLE)" },
+  { value: "zlib", label: "ZLib (more compression)" },
+];
 
 export function KvmTab({ id }: { id: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,6 +29,8 @@ export function KvmTab({ id }: { id: string }) {
   const maskRef = useRef(0);
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState("");
+  const [colorDepth, setColorDepth] = useState<ColorDepth>("16");
+  const [compression, setCompression] = useState<Compression>("none");
 
   useEffect(() => () => wsRef.current?.close(), []);
 
@@ -34,6 +52,7 @@ export function KvmTab({ id }: { id: string }) {
           setError(detail ?? "KVM protocol error");
         }
       },
+      { colorDepth, compression },
     );
     clientRef.current = client;
 
@@ -87,7 +106,31 @@ export function KvmTab({ id }: { id: string }) {
         <MonitorSmartphone className="h-5 w-5 text-[--color-accent]" />
         <span className="font-medium">Remote Desktop (KVM)</span>
         <Badge tone={tone}>{state}</Badge>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          {(state === "idle" || state === "closed" || state === "error") && (
+            <>
+              <select
+                value={colorDepth}
+                onChange={(e) => setColorDepth(e.target.value as ColorDepth)}
+                title="Color depth"
+                className="rounded-md border border-[--color-border] bg-[--color-bg] px-2 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+              >
+                {COLOR_DEPTHS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+              <select
+                value={compression}
+                onChange={(e) => setCompression(e.target.value as Compression)}
+                title="Compression"
+                className="rounded-md border border-[--color-border] bg-[--color-bg] px-2 py-1.5 text-sm outline-none focus:border-[--color-accent]"
+              >
+                {COMPRESSIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </>
+          )}
           {state === "running" && (
             <Button onClick={() => clientRef.current?.sendCtrlAltDel()} title="Send Ctrl+Alt+Del">
               <Keyboard className="h-4 w-4" /> Ctrl+Alt+Del

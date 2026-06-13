@@ -13,9 +13,18 @@
 import { Inflate } from "fflate";
 import { clientLog } from "./logger";
 
-const SET_PIXEL_NONE = 2; // bytes per pixel (RGB565)
-
 export type KvmStateHandler = (state: "init" | "running" | "error" | "closed", detail?: string) => void;
+
+// Quality knobs the user can pick before connecting.
+export type ColorDepth = "16" | "8" | "gray8" | "gray4";
+export type Compression = "none" | "zlib";
+
+export interface KvmOptions {
+  colorDepth: ColorDepth;
+  compression: Compression;
+}
+
+export const DEFAULT_KVM_OPTIONS: KvmOptions = { colorDepth: "16", compression: "none" };
 
 export class AmtKvmClient {
   private ctx: CanvasRenderingContext2D;
@@ -26,7 +35,12 @@ export class AmtKvmClient {
   private state = 0;
   private width = 0;
   private height = 0;
-  private readonly bpp = SET_PIXEL_NONE;
+
+  // Pixel format derived from options: bpp = bytes/pixel (1=RGB332/gray, 2=RGB565).
+  private bpp = 2;
+  private graymode = false;
+  private lowcolor = false;
+  private useZLib = false;
 
   // Reusable tile bitmap (the "spare").
   private spare: ImageData | null = null;
@@ -46,10 +60,18 @@ export class AmtKvmClient {
     canvas: HTMLCanvasElement,
     send: (b: Uint8Array) => void,
     onState: KvmStateHandler,
+    options: KvmOptions = DEFAULT_KVM_OPTIONS,
   ) {
     this.ctx = canvas.getContext("2d")!;
     this.send = send;
     this.onState = onState;
+    switch (options.colorDepth) {
+      case "16": this.bpp = 2; break;
+      case "8": this.bpp = 1; break;
+      case "gray8": this.bpp = 1; this.graymode = true; break;
+      case "gray4": this.bpp = 1; this.graymode = true; this.lowcolor = true; break;
+    }
+    this.useZLib = options.compression === "zlib";
     this.resetInflate();
   }
 
@@ -125,6 +147,12 @@ export class AmtKvmClient {
         const msg: number[] = [2, 0, (enc.length >> 8) & 0xff, enc.length & 0xff];
         for (const e of enc) msg.push((e >> 24) & 0xff, (e >> 16) & 0xff, (e >> 8) & 0xff, e & 0xff);
         this.sendBytes(msg);
+
+        // SetPixelFormat for non-default formats (RGB565 is the AMT default).
+        this.sendPixelFormat();
+        // Opt into ZLib compression of tiles if requested (no-op on firmware
+        // that doesn't support the KVM extension — we still decode either way).
+        if (this.useZLib) this.sendKvmExtCmd(4, 1);
 
         this.state = 4;
         this.onState("running");
@@ -202,13 +230,13 @@ export class AmtKvmClient {
       this.fbUpdateRequest(false, 0, 0, width, height);
       cmdsize = 12;
     } else if (encoding === 0) {
-      // RAW: width*height pixels, RGB565 little-endian.
+      // RAW: width*height pixels, little-endian, bpp bytes each.
       const cs = 12 + s * this.bpp;
       if (acc.byteLength < cs) return 0;
       let ptr = 12;
       for (let i = 0; i < s; i++) {
-        this.setPixel16(view.getUint16(ptr, true), i);
-        ptr += 2;
+        this.setPixel(this.bpp === 2 ? acc[ptr] + (acc[ptr + 1] << 8) : acc[ptr], i);
+        ptr += this.bpp;
       }
       this.putImage(x, y);
       cmdsize = cs;
@@ -265,52 +293,49 @@ export class AmtKvmClient {
   /** Decode an AMT LRE (run-length/palette) tile payload into the spare bitmap. */
   private decodeLRE(data: Uint8Array, ptr: number, x: number, y: number, width: number, height: number, s: number) {
     if (data.byteLength === 0) return;
+    const bpp = this.bpp;
+    const readPx = () => {
+      const v = bpp === 2 ? data[ptr] + (data[ptr + 1] << 8) : data[ptr];
+      ptr += bpp;
+      return v;
+    };
+
     const sub = data[ptr++];
     if (sub === 0) {
       // RAW within LRE.
-      for (let i = 0; i < s; i++) {
-        this.setPixel16(data[ptr] + (data[ptr + 1] << 8), i);
-        ptr += 2;
-      }
+      for (let i = 0; i < s; i++) this.setPixel(readPx(), i);
       this.putImage(x, y);
     } else if (sub === 1) {
       // Solid color tile.
-      const v = data[ptr] + (data[ptr + 1] << 8);
-      this.ctx.fillStyle = rgb565(v);
+      this.ctx.fillStyle = this.colorCss(readPx());
       this.ctx.fillRect(x, y, width, height);
     } else if (sub > 1 && sub < 17) {
       // Packed palette.
       const palette: number[] = [];
-      for (let i = 0; i < sub; i++) {
-        palette[i] = data[ptr] + (data[ptr + 1] << 8);
-        ptr += 2;
-      }
+      for (let i = 0; i < sub; i++) palette[i] = readPx();
       let br = 4, bm = 15;
       if (sub === 2) { br = 1; bm = 1; } else if (sub <= 4) { br = 2; bm = 3; }
       let rle = 0;
       while (rle < s && ptr < data.byteLength) {
         const v = data[ptr++];
-        for (let i = 8 - br; i >= 0; i -= br) this.setPixel16(palette[(v >> i) & bm], rle++);
+        for (let i = 8 - br; i >= 0; i -= br) this.setPixel(palette[(v >> i) & bm], rle++);
       }
       this.putImage(x, y);
     } else if (sub === 128) {
       // RLE run-length tile.
       let rle = 0;
       while (rle < s && ptr < data.byteLength) {
-        const v = data[ptr++] + (data[ptr++] << 8);
+        const v = readPx();
         let runlength = 1, d: number;
         do { d = data[ptr++]; runlength += d; } while (d === 255);
-        this.setPixel16Run(v, rle, runlength);
+        this.setPixelRun(v, rle, runlength);
         rle += runlength;
       }
       this.putImage(x, y);
     } else if (sub > 129) {
       // Palette RLE.
       const palette: number[] = [];
-      for (let i = 0; i < sub - 128; i++) {
-        palette[i] = data[ptr] + (data[ptr + 1] << 8);
-        ptr += 2;
-      }
+      for (let i = 0; i < sub - 128; i++) palette[i] = readPx();
       let rle = 0;
       while (rle < s && ptr < data.byteLength) {
         let runlength = 1;
@@ -320,7 +345,7 @@ export class AmtKvmClient {
           let d: number;
           do { d = data[ptr++]; runlength += d; } while (d === 255);
         }
-        this.setPixel16Run(v, rle, runlength);
+        this.setPixelRun(v, rle, runlength);
         rle += runlength;
       }
       this.putImage(x, y);
@@ -337,6 +362,17 @@ export class AmtKvmClient {
     }
   }
 
+  // setPixel/setPixelRun dispatch on the active pixel format.
+  private setPixel(v: number, p: number) {
+    if (this.bpp === 2) this.setPixel16(v, p);
+    else this.setPixel8(v, p);
+  }
+
+  private setPixelRun(v: number, p: number, run: number) {
+    if (this.bpp === 2) this.setPixel16Run(v, p, run);
+    else this.setPixel8Run(v, p, run);
+  }
+
   private setPixel16(v: number, p: number) {
     const pp = p << 2;
     const d = this.spare!.data;
@@ -350,15 +386,74 @@ export class AmtKvmClient {
     let pp = p << 2;
     const r = (v >> 8) & 248, g = (v >> 3) & 252, b = (v & 31) << 3;
     while (--run >= 0) {
-      d[pp] = r;
-      d[pp + 1] = g;
-      d[pp + 2] = b;
-      pp += 4;
+      d[pp] = r; d[pp + 1] = g; d[pp + 2] = b; pp += 4;
     }
+  }
+
+  private setPixel8(v: number, p: number) {
+    const pp = p << 2;
+    const d = this.spare!.data;
+    if (this.graymode) {
+      const g = this.lowcolor ? v << 4 : v;
+      d[pp] = d[pp + 1] = d[pp + 2] = g;
+    } else {
+      d[pp] = v & 224;
+      d[pp + 1] = (v & 28) << 3;
+      d[pp + 2] = fixColor((v & 3) << 6);
+    }
+  }
+
+  private setPixel8Run(v: number, p: number, run: number) {
+    const d = this.spare!.data;
+    let pp = p << 2;
+    if (this.graymode) {
+      const g = this.lowcolor ? v << 4 : v;
+      while (--run >= 0) { d[pp] = d[pp + 1] = d[pp + 2] = g; pp += 4; }
+    } else {
+      const r = v & 224, g = (v & 28) << 3, b = fixColor((v & 3) << 6);
+      while (--run >= 0) { d[pp] = r; d[pp + 1] = g; d[pp + 2] = b; pp += 4; }
+    }
+  }
+
+  /** CSS color string for a solid-fill tile in the active format. */
+  private colorCss(v: number): string {
+    if (this.graymode) {
+      const g = this.lowcolor ? v << 4 : v;
+      return `rgb(${g},${g},${g})`;
+    }
+    if (this.bpp === 1) {
+      return `rgb(${v & 224},${(v & 28) << 3},${fixColor((v & 3) << 6)})`;
+    }
+    return rgb565(v);
   }
 
   private putImage(x: number, y: number) {
     this.ctx.putImageData(this.spare!, x, y);
+  }
+
+  /** Sends a SetPixelFormat (RFB type 0) for the chosen depth. RGB565 is the
+   *  AMT default, so nothing is sent for 16-bit color. */
+  private sendPixelFormat() {
+    if (this.bpp === 2 && !this.graymode) return; // RGB565 default
+    let fmt: number[];
+    if (this.graymode && !this.lowcolor) {
+      fmt = [8, 8, 0, 1, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 8-bit grayscale
+    } else if (this.graymode) {
+      fmt = [8, 4, 0, 1, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 4-bit grayscale
+    } else {
+      fmt = [8, 8, 0, 1, 0, 7, 0, 7, 0, 3, 5, 2, 0, 0, 0, 0]; // RGB332
+    }
+    this.sendBytes([0, 0, 0, 0, ...fmt]);
+  }
+
+  /** Sends an Intel KVM extension command via RFB ClientCutText (type 6). */
+  private sendKvmExtCmd(cmd: number, val: number) {
+    const prefix = "\0KvmExtCmd\0";
+    const payload: number[] = [];
+    for (let i = 0; i < prefix.length; i++) payload.push(prefix.charCodeAt(i));
+    payload.push(cmd, val);
+    const len = payload.length;
+    this.sendBytes([6, 0, 0, 0, (len >> 24) & 0xff, (len >> 16) & 0xff, (len >> 8) & 0xff, len & 0xff, ...payload]);
   }
 
   // --- outbound RFB messages ---
@@ -410,6 +505,11 @@ export class AmtKvmClient {
 
 function rgb565(v: number): string {
   return `rgb(${(v >> 8) & 248},${(v >> 3) & 252},${(v & 31) << 3})`;
+}
+
+// RGB332 blue channel correction (matches MeshCommander's _fixColor).
+function fixColor(c: number): number {
+  return c > 127 ? c + 32 : c;
 }
 
 // Maps a KeyboardEvent.code to the AMT/X11 keysym, mirroring MeshCommander's
