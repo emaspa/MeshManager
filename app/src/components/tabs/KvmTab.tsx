@@ -67,8 +67,23 @@ export function KvmTab({ id }: { id: string }) {
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // Data-activity LED: lights up while screen data is arriving, dims when idle.
+  const [active, setActive] = useState(false);
+  const activeTimer = useRef<number | null>(null);
 
-  useEffect(() => () => wsRef.current?.close(), []);
+  function pulseActivity() {
+    setActive(true);
+    if (activeTimer.current) clearTimeout(activeTimer.current);
+    activeTimer.current = window.setTimeout(() => setActive(false), 150);
+  }
+
+  useEffect(
+    () => () => {
+      wsRef.current?.close();
+      if (activeTimer.current) clearTimeout(activeTimer.current);
+    },
+    [],
+  );
 
   function toggleRecord() {
     if (recording) {
@@ -149,7 +164,10 @@ export function KvmTab({ id }: { id: string }) {
     const ws = new WebSocket(url);
     ws.binaryType = "arraybuffer";
     wsRef.current = ws;
-    ws.onmessage = (ev) => client.processData(ev.data as ArrayBuffer);
+    ws.onmessage = (ev) => {
+      pulseActivity();
+      client.processData(ev.data as ArrayBuffer);
+    };
     ws.onerror = () => {
       setState("error");
       setError("WebSocket error - is the device powered on with KVM enabled in MEBx?");
@@ -195,6 +213,17 @@ export function KvmTab({ id }: { id: string }) {
         <MonitorSmartphone className="h-5 w-5 text-(--color-accent)" />
         <span className="font-medium">Remote Desktop (KVM)</span>
         <Badge tone={tone}>{state}</Badge>
+        {state === "running" && (
+          <span
+            title={active ? "Receiving screen data" : "Connected (idle)"}
+            className={
+              "h-2.5 w-2.5 rounded-full bg-(--color-good) transition-opacity duration-150 " +
+              (active
+                ? "opacity-100 shadow-[0_0_6px_var(--color-good)]"
+                : "opacity-25")
+            }
+          />
+        )}
         <div className="ml-auto flex items-center gap-2">
           {(state === "idle" || state === "closed" || state === "error") && (
             <>

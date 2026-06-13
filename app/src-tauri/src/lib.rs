@@ -108,11 +108,6 @@ pub fn run() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![sidecar_info, log_dir, open_logs, open_external])
         .setup(|app| {
-            // Show the app version in the window title bar.
-            if let Some(win) = app.get_webview_window("main") {
-                let _ = win.set_title(&format!("MeshManager v{}", app.package_info().version));
-            }
-
             // Resolve a per-user log directory (falls back to temp).
             let log_dir = app
                 .path()
