@@ -33,7 +33,8 @@ System and inventory
   (Redirection Port, Serial-over-LAN, IDE-Redirect, KVM).
 - Hardware: system manufacturer/model/serial, BIOS vendor/version, processors
   (brand, manufacturer, clock, stepping, status), memory (type, form factor,
-  size, manufacturer, part and serial), and storage (model and serial).
+  size, manufacturer, part and serial), and storage (model, serial, and
+  capacity).
 - Decoded firmware event log and audit log.
 
 Network
@@ -63,7 +64,7 @@ Tooling
 - WS-MAN browser: read-only inspection of any supported AMT / CIM / IPS class.
 - Scheduled wake (Alarm Clock): add / list / remove wake-ups.
 - Logging designed for bug reports (see [Logs and bug reports](#logs-and-bug-reports)),
-  an About dialog, and the app version in the window title.
+  plus an About dialog and the app version in the sidebar footer.
 
 ## Architecture
 
