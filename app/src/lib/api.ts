@@ -35,6 +35,8 @@ export interface DeviceInfo {
   activeFeatures: string[];
   userConsent: string;
   deviceTime: string;
+  respondToPing: boolean;
+  dynamicDns: boolean;
 }
 
 export interface PowerStatus {
@@ -130,6 +132,7 @@ export interface CiraPolicy {
 export interface RemoteAccessConfig {
   mpsServers: MpsServer[];
   policies: CiraPolicy[];
+  environmentDetection: string;
 }
 
 export interface WiFiProfile {

@@ -6,9 +6,20 @@ import { Badge, Button, Card, Field, Input, Spinner } from "../../lib/ui";
 
 export function NetworkTab({ id }: { id: string }) {
   const net = useQuery({ queryKey: ["network", id], queryFn: () => api.network(id) });
+  const info = useQuery({ queryKey: ["info", id], queryFn: () => api.info(id) });
 
   return (
     <div className="space-y-4">
+      {info.data && (
+        <Card>
+          <h3 className="mb-3 font-medium">General</h3>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-3">
+            <KV k="Domain" v={info.data.domainName} />
+            <KV k="Respond to ping" v={info.data.respondToPing ? "Yes" : "No"} />
+            <KV k="Dynamic DNS" v={info.data.dynamicDns ? "Enabled" : "Disabled"} />
+          </div>
+        </Card>
+      )}
       <h3 className="font-medium">Wired interfaces</h3>
       {net.isLoading && <div className="flex justify-center py-6"><Spinner /></div>}
       {net.isError && <p className="text-(--color-bad)">{(net.error as Error).message}</p>}

@@ -3,6 +3,7 @@ package amt
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/device-management-toolkit/go-wsman-messages/v2/pkg/wsman"
 	"github.com/device-management-toolkit/go-wsman-messages/v2/pkg/wsman/amt/remoteaccess"
@@ -24,8 +25,9 @@ type CiraPolicy struct {
 
 // RemoteAccessConfig is the device's CIRA configuration.
 type RemoteAccessConfig struct {
-	MpsServers []MpsServer  `json:"mpsServers"`
-	Policies   []CiraPolicy `json:"policies"`
+	MpsServers           []MpsServer  `json:"mpsServers"`
+	Policies             []CiraPolicy `json:"policies"`
+	EnvironmentDetection string       `json:"environmentDetection"`
 }
 
 // RemoteAccess lists configured MPS servers and CIRA policies.
@@ -52,6 +54,12 @@ func (s *Session) RemoteAccess() (RemoteAccessConfig, error) {
 						Trigger: p.Trigger.String(),
 					})
 				}
+			}
+		}
+		cfg.EnvironmentDetection = "Disabled"
+		if resp, err := m.AMT.EnvironmentDetectionSettingData.Get(); err == nil {
+			if ds := resp.Body.GetAndPutResponse.DetectionStrings; len(ds) > 0 {
+				cfg.EnvironmentDetection = strings.Join(ds, ", ")
 			}
 		}
 		return nil

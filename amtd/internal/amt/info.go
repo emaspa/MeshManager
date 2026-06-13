@@ -20,6 +20,8 @@ type DeviceInfo struct {
 	ActiveFeatures    []string          `json:"activeFeatures"`
 	UserConsent       string            `json:"userConsent"`
 	DeviceTime        string            `json:"deviceTime"`
+	RespondToPing     bool              `json:"respondToPing"`
+	DynamicDNS        bool              `json:"dynamicDns"`
 }
 
 // Info gathers identity, general settings and firmware versions for a device.
@@ -42,6 +44,8 @@ func (s *Session) Info() (DeviceInfo, error) {
 			info.DomainName = g.DomainName
 			info.DigestRealm = g.DigestRealm
 			info.NetworkEnabled = g.NetworkInterfaceEnabled
+			info.RespondToPing = g.PingResponseEnabled || g.RmcpPingResponseEnabled
+			info.DynamicDNS = g.DDNSUpdateEnabled
 		}
 
 		// Provisioning / control mode.

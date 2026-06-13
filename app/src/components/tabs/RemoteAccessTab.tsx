@@ -43,6 +43,15 @@ export function RemoteAccessTab({ id }: { id: string }) {
         device config changes; verify against your MPS setup.
       </div>
 
+      {ra.data && (
+        <Card>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-(--color-muted)">Environment detection</span>
+            <span className="font-mono">{ra.data.environmentDetection || "-"}</span>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-medium">
