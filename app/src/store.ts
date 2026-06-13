@@ -23,6 +23,9 @@ interface UiState {
 
   discoverOpen: boolean;
   setDiscoverOpen: (open: boolean) => void;
+
+  aboutOpen: boolean;
+  setAboutOpen: (open: boolean) => void;
 }
 
 export const useUi = create<UiState>((set) => ({
@@ -36,4 +39,7 @@ export const useUi = create<UiState>((set) => ({
 
   discoverOpen: false,
   setDiscoverOpen: (open) => set({ discoverOpen: open }),
+
+  aboutOpen: false,
+  setAboutOpen: (open) => set({ aboutOpen: open }),
 }));

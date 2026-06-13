@@ -83,13 +83,36 @@ fn random_token() -> String {
     (0..32).map(|_| HEX[rng.gen_range(0..16)] as char).collect()
 }
 
+/// Opens a URL in the user's default browser.
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    // Only allow http(s) so the command can't be coaxed into launching arbitrary
+    // programs.
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("only http(s) URLs are allowed".into());
+    }
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open").arg(&url).spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let result = std::process::Command::new("xdg-open").arg(&url).spawn();
+
+    result.map(|_| ()).map_err(|e| e.to_string())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![sidecar_info, log_dir, open_logs])
+        .invoke_handler(tauri::generate_handler![sidecar_info, log_dir, open_logs, open_external])
         .setup(|app| {
+            // Show the app version in the window title bar.
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.set_title(&format!("MeshManager v{}", app.package_info().version));
+            }
+
             // Resolve a per-user log directory (falls back to temp).
             let log_dir = app
                 .path()

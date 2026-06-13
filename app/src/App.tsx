@@ -1,6 +1,7 @@
 import { Sidebar } from "./components/Sidebar";
 import { ConnectDialog } from "./components/ConnectDialog";
 import { DiscoverDialog } from "./components/DiscoverDialog";
+import { AboutDialog } from "./components/AboutDialog";
 import { DeviceView } from "./components/DeviceView";
 import { useUi } from "./store";
 
@@ -8,6 +9,7 @@ export default function App() {
   const selectedId = useUi((s) => s.selectedId);
   const connectOpen = useUi((s) => s.connectOpen);
   const discoverOpen = useUi((s) => s.discoverOpen);
+  const aboutOpen = useUi((s) => s.aboutOpen);
 
   return (
     <div className="flex h-full w-full">
@@ -21,6 +23,7 @@ export default function App() {
       </main>
       {connectOpen && <ConnectDialog />}
       {discoverOpen && <DiscoverDialog />}
+      {aboutOpen && <AboutDialog />}
     </div>
   );
 }

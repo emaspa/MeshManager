@@ -1,27 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Server, Wifi, WifiOff, Radar, FileText, Pencil, Trash2 } from "lucide-react";
+import { Plus, Server, Wifi, WifiOff, Radar, FileText, Pencil, Trash2, Info } from "lucide-react";
 import clsx from "clsx";
 import { api } from "../lib/api";
 import { useUi } from "../store";
 import { useBookmarks, effectivePort, type Bookmark } from "../lib/bookmarks";
+import { isTauri, openLogs } from "../lib/native";
 import { Button } from "../lib/ui";
 
-function isTauri() {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-
-async function openLogs() {
-  if (!isTauri()) return;
-  try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("open_logs");
-  } catch {
-    /* ignore */
-  }
-}
-
 export function Sidebar() {
-  const { selectedId, select, openConnect, setDiscoverOpen } = useUi();
+  const { selectedId, select, openConnect, setDiscoverOpen, setAboutOpen } = useUi();
   const { bookmarks, remove } = useBookmarks();
   const qc = useQueryClient();
 
@@ -153,7 +140,14 @@ export function Sidebar() {
       </div>
 
       <div className="flex items-center justify-between border-t border-(--color-border) px-4 py-2 text-xs text-(--color-muted)">
-        <span>{health.data ? `amtd v${health.data.version}` : "connecting to amtd…"}</span>
+        <button
+          onClick={() => setAboutOpen(true)}
+          title="About MeshManager"
+          className="flex items-center gap-1 hover:text-(--color-text)"
+        >
+          <Info className="h-3.5 w-3.5" />
+          {health.data ? `v${health.data.version}` : "connecting…"}
+        </button>
         {isTauri() && (
           <button
             onClick={openLogs}
