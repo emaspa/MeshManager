@@ -63,7 +63,7 @@ export function HardwareTab({ id }: { id: string }) {
           head={["Model", "Serial", "Capacity (KB)"]}
           rows={d.disks.map((x) => [
             x.model || x.elementName || x.deviceId,
-            x.serialNumber || "-",
+            x.serialNumber || "Unknown",
             String(x.maxMediaKb),
           ])}
         />

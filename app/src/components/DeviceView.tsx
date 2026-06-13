@@ -173,7 +173,7 @@ export function DeviceView({ id }: { id: string }) {
       </header>
 
       {/* Tabs */}
-      <nav className="flex gap-1 border-b border-(--color-border) px-3">
+      <nav className="flex flex-wrap gap-1 border-b border-(--color-border) px-3">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (

@@ -56,6 +56,23 @@ type DiskInfo struct {
 	ElementName  string `json:"elementName"`
 }
 
+// friendlyCPUStatus turns the library's CPUStatus name into MeshCommander-style
+// text (e.g. "CPUEnabled" -> "Enabled").
+func friendlyCPUStatus(s string) string {
+	switch s {
+	case "CPUEnabled":
+		return "Enabled"
+	case "CPUDisabledByUser":
+		return "Disabled (user)"
+	case "CPUDisabledByBIOS":
+		return "Disabled (BIOS)"
+	case "CPUIsIdle":
+		return "Idle"
+	default:
+		return s
+	}
+}
+
 // memoryFormFactor decodes the SMBIOS form-factor code.
 var memoryFormFactor = map[int]string{
 	1: "Other", 2: "Unknown", 3: "SIMM", 4: "SIP", 5: "Chip", 6: "DIP",
@@ -111,7 +128,7 @@ func (s *Session) Hardware() (Hardware, error) {
 						MaxClockMHz:  p.MaxClockSpeed,
 						CurrentClock: p.CurrentClockSpeed,
 						Stepping:     p.Stepping,
-						Status:       p.CPUStatus.String(),
+						Status:       friendlyCPUStatus(p.CPUStatus.String()),
 					}
 					if idx < len(chips) {
 						pi.Manufacturer = chips[idx].manufacturer
