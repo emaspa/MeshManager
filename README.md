@@ -101,13 +101,13 @@ browser it falls back to a configurable endpoint.
 
 - Go 1.26 or newer (sidecar).
 - Node.js with npm (frontend tooling). The Tauri CLI is installed as a project
-  dev dependency, so `npm install` in `app/` provides it — no global install
-  needed. (Bun also works if you prefer it; the scripts use npm.)
+  dev dependency, so `npm install` in `app/` provides it (no global install
+  needed). Bun also works if you prefer it; the scripts use npm.
 - For the Windows desktop build: the MSVC Rust toolchain
   (`rustup default stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools
   with the C++ workload, and the WebView2 runtime (preinstalled on Windows 11).
 - For the Linux desktop build: the stable Rust toolchain plus the Tauri system
-  libraries — `webkit2gtk-4.1`, `gtk+-3.0`, `libsoup-3.0`, and the usual C
+  libraries (`webkit2gtk-4.1`, `gtk+-3.0`, `libsoup-3.0`) and the usual C
   build tools. On Debian/Ubuntu:
   `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev build-essential pkg-config`.
 
