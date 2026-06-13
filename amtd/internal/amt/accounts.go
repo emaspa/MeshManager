@@ -112,8 +112,12 @@ func parseEnabledState(xmlOut string) bool {
 		} `xml:"Body"`
 	}
 	_ = xml.Unmarshal([]byte(xmlOut), &env)
+	// Default to enabled: AMT reports the built-in admin (and most users) as
+	// enabled, and only an explicit false/0 means disabled. Treating a
+	// missing/unparsed State as "disabled" wrongly showed enabled accounts as
+	// disabled.
 	v := strings.ToLower(strings.TrimSpace(env.Body.Out.State))
-	return v == "true" || v == "1"
+	return v != "false" && v != "0"
 }
 
 // AddAccount creates a digest user. realms are AMT realm numbers (e.g. 2 =

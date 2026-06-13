@@ -491,13 +491,15 @@ export class AmtKvmClient {
     }
   }
 
+  /** Presses a chord: all keysyms down in order, then released in reverse. */
+  sendCombo(keysyms: number[]) {
+    for (const k of keysyms) this.sendKey(k, true);
+    for (let i = keysyms.length - 1; i >= 0; i--) this.sendKey(keysyms[i], false);
+  }
+
   /** Ctrl+Alt+Del sequence. */
   sendCtrlAltDel() {
-    const seq: [number, boolean][] = [
-      [0xffe3, true], [0xffe9, true], [0xffff, true],
-      [0xffff, false], [0xffe9, false], [0xffe3, false],
-    ];
-    for (const [k, d] of seq) this.sendKey(k, d);
+    this.sendCombo([0xffe3, 0xffe9, 0xffff]); // Ctrl, Alt, Del
   }
 
   /** PointerEvent (type 5): button mask + big-endian x,y. */

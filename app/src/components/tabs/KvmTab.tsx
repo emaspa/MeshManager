@@ -9,6 +9,8 @@ import {
   Expand,
   Maximize2,
   Minimize2,
+  Video,
+  ChevronDown,
 } from "lucide-react";
 import { wsUrl } from "../../lib/api";
 import {
@@ -32,6 +34,23 @@ const COMPRESSIONS: { value: Compression; label: string }[] = [
   { value: "zlib", label: "ZLib (more compression)" },
 ];
 
+// Special key chords (X11 keysyms). Modifiers: Ctrl 0xffe3, Alt 0xffe9,
+// Shift 0xffe1, Win 0xffe7.
+const SPECIAL_KEYS: { label: string; keys: number[] }[] = [
+  { label: "Ctrl+Alt+Del", keys: [0xffe3, 0xffe9, 0xffff] },
+  { label: "Alt+Tab", keys: [0xffe9, 0xff09] },
+  { label: "Alt+F4", keys: [0xffe9, 0xffc1] },
+  { label: "Ctrl+Esc", keys: [0xffe3, 0xff1b] },
+  { label: "Ctrl+Shift+Esc", keys: [0xffe3, 0xffe1, 0xff1b] },
+  { label: "Windows", keys: [0xffe7] },
+  { label: "Escape", keys: [0xff1b] },
+  { label: "Delete", keys: [0xffff] },
+  { label: "F2 (Setup)", keys: [0xffbf] },
+  { label: "F8 (Boot menu)", keys: [0xffc5] },
+  { label: "F10", keys: [0xffc7] },
+  { label: "F12 (Network boot)", keys: [0xffc9] },
+];
+
 export function KvmTab({ id }: { id: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -44,8 +63,44 @@ export function KvmTab({ id }: { id: string }) {
   const [compression, setCompression] = useState<Compression>("none");
   const [viewOnly, setViewOnly] = useState(false);
   const [actualSize, setActualSize] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => () => wsRef.current?.close(), []);
+
+  function toggleRecord() {
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    const canvas = canvasRef.current as (HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream }) | null;
+    if (!canvas?.captureStream) return;
+    try {
+      const stream = canvas.captureStream(15);
+      const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size) chunksRef.current.push(e.data);
+      };
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `kvm-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setRecording(false);
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      /* recording unsupported */
+    }
+  }
 
   function screenshot() {
     const url = canvasRef.current?.toDataURL("image/png");
@@ -183,9 +238,30 @@ export function KvmTab({ id }: { id: string }) {
               <Button onClick={toggleFullscreen} title="Fullscreen">
                 <Expand className="h-4 w-4" />
               </Button>
-              <Button onClick={() => clientRef.current?.sendCtrlAltDel()} title="Send Ctrl+Alt+Del">
-                <Keyboard className="h-4 w-4" /> Ctrl+Alt+Del
+              <Button onClick={toggleRecord} title="Record video" variant={recording ? "danger" : "default"}>
+                <Video className="h-4 w-4" /> {recording ? "Stop" : "Rec"}
               </Button>
+              <div className="relative">
+                <Button onClick={() => setKeysOpen((o) => !o)} title="Send key combination">
+                  <Keyboard className="h-4 w-4" /> Keys <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+                {keysOpen && (
+                  <div className="absolute right-0 z-20 mt-1 w-52 rounded-md border border-(--color-border) bg-(--color-panel-2) py-1 shadow-xl">
+                    {SPECIAL_KEYS.map((k) => (
+                      <button
+                        key={k.label}
+                        onClick={() => {
+                          clientRef.current?.sendCombo(k.keys);
+                          setKeysOpen(false);
+                        }}
+                        className="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-(--color-border)"
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
           {state === "running" ? (

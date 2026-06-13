@@ -56,16 +56,19 @@ export interface Hardware {
   bios: { vendor: string; version: string };
   processors: {
     id: string;
+    model: string;
     family: number;
     maxClockMhz: number;
     currentClockMhz: number;
-    upgradeMethod: number;
+    stepping: string;
+    status: string;
   }[];
   memory: {
     bankLabel: string;
     capacityMb: number;
     speedMhz: number;
-    memoryType: number;
+    type: string;
+    formFactor: string;
     manufacturer: string;
     partNumber: string;
     serialNumber: string;

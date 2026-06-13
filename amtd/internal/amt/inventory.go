@@ -27,18 +27,21 @@ type SystemInfo struct {
 }
 
 type ProcessorInfo struct {
-	ID            string `json:"id"`
-	Family        int    `json:"family"`
-	MaxClockMHz   int    `json:"maxClockMhz"`
-	CurrentClock  int    `json:"currentClockMhz"`
-	UpgradeMethod int    `json:"upgradeMethod"`
+	ID           string `json:"id"`
+	Model        string `json:"model"`
+	Family       int    `json:"family"`
+	MaxClockMHz  int    `json:"maxClockMhz"`
+	CurrentClock int    `json:"currentClockMhz"`
+	Stepping     string `json:"stepping"`
+	Status       string `json:"status"`
 }
 
 type MemoryInfo struct {
 	BankLabel    string `json:"bankLabel"`
 	CapacityMB   int    `json:"capacityMb"`
 	SpeedMHz     int    `json:"speedMhz"`
-	MemoryType   int    `json:"memoryType"`
+	Type         string `json:"type"`
+	FormFactor   string `json:"formFactor"`
 	Manufacturer string `json:"manufacturer"`
 	PartNumber   string `json:"partNumber"`
 	SerialNumber string `json:"serialNumber"`
@@ -48,6 +51,13 @@ type DiskInfo struct {
 	DeviceID    string `json:"deviceId"`
 	MaxMediaKB  int    `json:"maxMediaKb"`
 	ElementName string `json:"elementName"`
+}
+
+// memoryFormFactor decodes the SMBIOS form-factor code.
+var memoryFormFactor = map[int]string{
+	1: "Other", 2: "Unknown", 3: "SIMM", 4: "SIP", 5: "Chip", 6: "DIP",
+	7: "ZIP", 8: "Proprietary Card", 9: "DIMM", 10: "TSOP", 11: "Row of chips",
+	12: "RIMM", 13: "SODIMM", 14: "SRIMM", 15: "FB-DIMM",
 }
 
 // Hardware collects CPU, memory, disk and chassis inventory.
@@ -81,11 +91,13 @@ func (s *Session) Hardware() (Hardware, error) {
 			if pull, err := m.CIM.Processor.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
 				for _, p := range pull.Body.PullResponse.PackageItems {
 					hw.Processors = append(hw.Processors, ProcessorInfo{
-						ID:            p.DeviceID,
-						Family:        int(p.Family),
-						MaxClockMHz:   p.MaxClockSpeed,
-						CurrentClock:  p.CurrentClockSpeed,
-						UpgradeMethod: int(p.UpgradeMethod),
+						ID:           p.DeviceID,
+						Model:        p.ElementName,
+						Family:       int(p.Family),
+						MaxClockMHz:  p.MaxClockSpeed,
+						CurrentClock: p.CurrentClockSpeed,
+						Stepping:     p.Stepping,
+						Status:       p.HealthState.String(),
 					})
 				}
 			}
@@ -99,7 +111,8 @@ func (s *Session) Hardware() (Hardware, error) {
 						BankLabel:    mem.BankLabel,
 						CapacityMB:   int(mem.Capacity / (1024 * 1024)),
 						SpeedMHz:     mem.Speed,
-						MemoryType:   int(mem.MemoryType),
+						Type:         mem.MemoryType.String(),
+						FormFactor:   memoryFormFactor[mem.FormFactor],
 						Manufacturer: mem.Manufacturer,
 						PartNumber:   mem.PartNumber,
 						SerialNumber: mem.SerialNumber,

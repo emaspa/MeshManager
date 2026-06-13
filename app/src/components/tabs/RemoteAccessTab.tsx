@@ -34,6 +34,7 @@ export function RemoteAccessTab({ id }: { id: string }) {
   const delPolicy = useMutation({ mutationFn: (n: string) => api.deletePolicy(id, n), onSuccess: invalidate });
 
   const servers = ra.data?.mpsServers ?? [];
+  const policies = ra.data?.policies ?? [];
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -132,8 +133,8 @@ export function RemoteAccessTab({ id }: { id: string }) {
 
       <Card>
         <h3 className="mb-3 font-medium">CIRA Policies</h3>
-        {ra.data && ra.data.policies.length === 0 && <p className="text-sm text-(--color-muted)">No policies.</p>}
-        {ra.data && ra.data.policies.length > 0 && (
+        {ra.data && policies.length === 0 && <p className="text-sm text-(--color-muted)">No policies.</p>}
+        {policies.length > 0 && (
           <table className="mb-4 w-full text-left text-sm">
             <thead>
               <tr className="text-xs uppercase text-(--color-muted)">
@@ -143,7 +144,7 @@ export function RemoteAccessTab({ id }: { id: string }) {
               </tr>
             </thead>
             <tbody>
-              {ra.data.policies.map((p) => (
+              {policies.map((p) => (
                 <tr key={p.name} className="border-t border-(--color-border)">
                   <td className="py-2 pr-4">{p.name}</td>
                   <td className="py-2 pr-4">{p.trigger}</td>
