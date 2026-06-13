@@ -66,6 +66,13 @@ The Rust shell (`app/src-tauri/`) spawns `amtd` on a random loopback port with a
 generated bearer token and hands the endpoint to the frontend via the
 `sidecar_info` command — the UI auto-detects Tauri and uses it.
 
+> **Don't double-click `app/src-tauri/target/debug/meshmanager.exe`.** A *debug*
+> Tauri build loads the dev server at `http://localhost:1420`, so without Vite
+> running the window shows "can't reach this page." Use `cargo tauri dev` (which
+> starts Vite for you) during development, or run `cargo tauri build` /
+> `scripts/build.ps1` to produce a standalone app that embeds the frontend. The
+> bundled installer/exe lands under `app/src-tauri/target/release/bundle/`.
+
 ### Running the sidecar alone
 
 ```powershell
