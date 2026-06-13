@@ -63,8 +63,7 @@ Redirection
 Tooling
 - WS-MAN browser: read-only inspection of any supported AMT / CIM / IPS class.
 - Scheduled wake (Alarm Clock): add / list / remove wake-ups.
-- Logging designed for bug reports (see [Logs and bug reports](#logs-and-bug-reports)),
-  plus an About dialog and the app version in the sidebar footer.
+- Logging designed for bug reports (see [Logs and bug reports](#logs-and-bug-reports)).
 
 ## Architecture
 
