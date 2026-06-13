@@ -130,8 +130,11 @@ export function Sidebar() {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{b.name || b.host}</span>
                       <span className="block truncate text-xs text-(--color-muted)">
-                        {b.host}:{effectivePort(b)} {b.tls ? "· TLS" : ""} {busy ? "· connecting…" : ""}
+                        {b.host}:{effectivePort(b)}{b.tls ? " · TLS" : ""}
                       </span>
+                      {busy && (
+                        <span className="block text-xs text-(--color-accent)">Connecting…</span>
+                      )}
                     </span>
                   </button>
                   <div className="ml-1 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
