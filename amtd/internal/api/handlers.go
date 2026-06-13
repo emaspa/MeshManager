@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -137,6 +138,62 @@ func (s *Server) handleHardware(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, hw)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	accs, err := sessionFrom(r).Accounts()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, accs)
+}
+
+func (s *Server) handleAddAccount(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Username         string `json:"username"`
+		Password         string `json:"password"`
+		AccessPermission int    `json:"accessPermission"`
+		Realms           []int  `json:"realms"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddAccount(body.Username, body.Password, body.AccessPermission, body.Realms); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleAccountAction(w http.ResponseWriter, r *http.Request) {
+	handle, err := strconv.Atoi(chi.URLParam(r, "handle"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid handle")
+		return
+	}
+	sess := sessionFrom(r)
+	if r.Method == http.MethodDelete {
+		if err := sess.RemoveAccount(handle); err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		return
+	}
+	var body struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sess.SetAccountEnabled(handle, body.Enabled); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {

@@ -94,6 +94,8 @@ API surface (all under `/api`, bearer-token auth except `/health`):
 | POST | `/devices/{id}/boot` | one-time boot `{device, power}` (pxe/cd/hdd/bios) |
 | GET | `/devices/{id}/hardware` | CPU, memory, disk, chassis inventory |
 | GET | `/devices/{id}/network` | AMT ethernet interfaces (IP/DHCP/MAC/DNS) |
+| GET / POST | `/devices/{id}/accounts` | list users / add digest user |
+| POST / DELETE | `/devices/{id}/accounts/{handle}` | enable-disable / remove user |
 | GET | `/devices/{id}/eventlog` · `/auditlog` | decoded firmware event / audit logs |
 | POST | `/devices/{id}/ider/start` · `/stop` | mount/eject a remote ISO `{isoPath, boot}` |
 | GET | `/devices/{id}/ider/status` | IDE-R transfer stats |
@@ -133,8 +135,8 @@ it to log to stderr only).
 - [x] IDE-R (boot from remote ISO — ATAPI CD-ROM emulation in the sidecar)
 - [x] Network info panel (AMT_EthernetPortSettings)
 - [x] Device discovery (subnet / CIDR scan with AMT server-header check)
-- [ ] Account & certificate management (blocked on go-wsman-messages add-user support)
-- [ ] Wireless config, system-defense, alarm clock
+- [x] Account management (list / add digest user / enable-disable / remove)
+- [ ] Certificate management, wireless config, system-defense, alarm clock
 - [ ] Tauri packaging/signing polish
 
 ## License

@@ -105,6 +105,14 @@ export interface Discovered {
   isAmt: boolean;
 }
 
+export interface Account {
+  handle: number;
+  username: string;
+  accessPermission: number; // 0=local, 1=network, 2=any
+  realms: number[];
+  enabled: boolean;
+}
+
 export interface IderStats {
   connected: boolean;
   bytesToAmt: number;
@@ -180,6 +188,22 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  accounts: (id: string) => req<Account[]>(`/api/devices/${id}/accounts`),
+  addAccount: (
+    id: string,
+    body: { username: string; password: string; accessPermission: number; realms: number[] },
+  ) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/accounts`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  removeAccount: (id: string, handle: number) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/accounts/${handle}`, { method: "DELETE" }),
+  setAccountEnabled: (id: string, handle: number, enabled: boolean) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/accounts/${handle}`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
   iderStart: (id: string, isoPath: string, boot: boolean) =>
     req<{ ok: boolean }>(`/api/devices/${id}/ider/start`, {
       method: "POST",

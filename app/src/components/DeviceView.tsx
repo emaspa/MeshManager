@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Network,
   Disc,
+  Users,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
@@ -25,11 +26,13 @@ import { AuditLogTab } from "./tabs/AuditLogTab";
 import { SerialTab } from "./tabs/SerialTab";
 import { KvmTab } from "./tabs/KvmTab";
 import { IderTab } from "./tabs/IderTab";
+import { AccountsTab } from "./tabs/AccountsTab";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "hardware", label: "Hardware", icon: Cpu },
   { id: "network", label: "Network", icon: Network },
+  { id: "accounts", label: "Accounts", icon: Users },
   { id: "events", label: "Event Log", icon: ScrollText },
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
   { id: "serial", label: "Serial", icon: TerminalSquare },
@@ -184,6 +187,7 @@ export function DeviceView({ id }: { id: string }) {
         {tab === "overview" && <Overview id={id} />}
         {tab === "hardware" && <HardwareTab id={id} />}
         {tab === "network" && <NetworkTab id={id} />}
+        {tab === "accounts" && <AccountsTab id={id} />}
         {tab === "events" && <EventLogTab id={id} />}
         {tab === "audit" && <AuditLogTab id={id} />}
         {tab === "serial" && <SerialTab id={id} />}
