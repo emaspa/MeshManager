@@ -208,6 +208,15 @@ export const api = {
   browse: (id: string, className: string) =>
     req<unknown>(`/api/devices/${id}/browse?class=${encodeURIComponent(className)}`),
   certificates: (id: string) => req<Certificate[]>(`/api/devices/${id}/certificates`),
+  addTrustedRoot: (id: string, certificate: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/certificates`, {
+      method: "POST",
+      body: JSON.stringify({ certificate }),
+    }),
+  deleteCertificate: (id: string, instanceId: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/certificates/${encodeURIComponent(instanceId)}`, {
+      method: "DELETE",
+    }),
   alarms: (id: string) => req<Alarm[]>(`/api/devices/${id}/alarms`),
   addAlarm: (
     id: string,

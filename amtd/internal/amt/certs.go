@@ -1,6 +1,9 @@
 package amt
 
 import (
+	"fmt"
+	"regexp"
+
 	"github.com/device-management-toolkit/go-wsman-messages/v2/pkg/wsman"
 )
 
@@ -38,4 +41,39 @@ func (s *Session) Certificates() ([]Certificate, error) {
 		return nil
 	})
 	return out, err
+}
+
+var pemStrip = regexp.MustCompile(`-----[^-]+-----|\s`)
+
+// AddTrustedRootCert adds a trusted root CA certificate. Accepts a PEM block or
+// a raw base64 DER blob; PEM armor and whitespace are stripped.
+func (s *Session) AddTrustedRootCert(cert string) error {
+	blob := pemStrip.ReplaceAllString(cert, "")
+	if blob == "" {
+		return fmt.Errorf("empty certificate")
+	}
+	return s.withWSMAN(func(m *wsman.Messages) error {
+		resp, err := m.AMT.PublicKeyManagementService.AddTrustedRootCertificate(blob)
+		if err != nil {
+			return err
+		}
+		if rv, ok := returnValue(resp.XMLOutput); ok && rv != 0 {
+			return fmt.Errorf("add trusted root failed (AMT return value %d)", rv)
+		}
+		return nil
+	})
+}
+
+// DeleteCertificate removes a stored certificate by instance id.
+func (s *Session) DeleteCertificate(instanceID string) error {
+	return s.withWSMAN(func(m *wsman.Messages) error {
+		resp, err := m.AMT.PublicKeyCertificate.Delete(instanceID)
+		if err != nil {
+			return err
+		}
+		if rv, ok := returnValue(resp.XMLOutput); ok && rv != 0 {
+			return fmt.Errorf("delete certificate failed (AMT return value %d)", rv)
+		}
+		return nil
+	})
 }

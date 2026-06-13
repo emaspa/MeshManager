@@ -205,6 +205,29 @@ func (s *Server) handleCertificates(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, certs)
 }
 
+func (s *Server) handleAddTrustedRoot(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Certificate string `json:"certificate"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddTrustedRootCert(body.Certificate); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDeleteCertificate(w http.ResponseWriter, r *http.Request) {
+	if err := sessionFrom(r).DeleteCertificate(chi.URLParam(r, "instanceId")); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleAlarms(w http.ResponseWriter, r *http.Request) {
 	alarms, err := sessionFrom(r).Alarms()
 	if err != nil {

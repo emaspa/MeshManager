@@ -52,6 +52,8 @@ func (s *Server) Router() http.Handler {
 		r.Get("/browse/classes", s.handleBrowseClasses)
 		r.Get("/browse", s.handleBrowse)
 		r.Get("/certificates", s.handleCertificates)
+		r.Post("/certificates", s.handleAddTrustedRoot)
+		r.Delete("/certificates/{instanceId}", s.handleDeleteCertificate)
 		r.Get("/alarms", s.handleAlarms)
 		r.Post("/alarms", s.handleAddAlarm)
 		r.Delete("/alarms/{instanceId}", s.handleDeleteAlarm)
