@@ -22,6 +22,15 @@ body,
   margin: 0;
 }
 
+/* This is a dark UI. Tell the engine so it renders NATIVE form controls
+   (the <select> dropdown + its option popup, checkboxes, scrollbars, autofill)
+   with dark chrome. WebKitGTK draws <select> as a native GTK widget that
+   ignores author background/color, so per-element CSS alone can't darken the
+   popup — color-scheme is what actually flips it. */
+:root {
+  color-scheme: dark;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);
@@ -35,6 +44,20 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+}
+
+/* Native <select> popups (WebKitGTK on Linux, and some other engines) render
+   the option list with the platform's default light background, so the dark
+   theme's light text would be unreadable. Pin both the control and its options
+   to the dark palette. */
+select {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+option {
+  color: var(--color-text);
+  background-color: var(--color-panel);
 }
 
 /* The native-app feel disables text selection globally (on body), but data the

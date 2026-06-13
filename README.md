@@ -9,8 +9,9 @@ host OS) to control power and boot, read hardware and logs, manage accounts,
 certificates and networking, and drive the redirection features
 (Serial-over-LAN, KVM remote desktop, and boot-from-ISO).
 
-License: Apache 2.0. Platform: the desktop build targets Windows; the Go
-sidecar and React UI are cross-platform.
+License: Apache 2.0. Platform: the desktop build runs on Windows and Linux
+(Linux bundles as deb / rpm / AppImage); the Go sidecar and React UI are
+cross-platform.
 
 ## Features
 
@@ -99,49 +100,83 @@ browser it falls back to a configurable endpoint.
 ## Requirements
 
 - Go 1.26 or newer (sidecar).
-- Bun (frontend tooling).
-- For the desktop build: the MSVC Rust toolchain
+- Node.js with npm (frontend tooling). The Tauri CLI is installed as a project
+  dev dependency, so `npm install` in `app/` provides it — no global install
+  needed. (Bun also works if you prefer it; the scripts use npm.)
+- For the Windows desktop build: the MSVC Rust toolchain
   (`rustup default stable-x86_64-pc-windows-msvc`), Visual Studio Build Tools
-  with the C++ workload, the WebView2 runtime (preinstalled on Windows 11), and
-  the Tauri CLI (`cargo install tauri-cli --version "^2"`).
+  with the C++ workload, and the WebView2 runtime (preinstalled on Windows 11).
+- For the Linux desktop build: the stable Rust toolchain plus the Tauri system
+  libraries — `webkit2gtk-4.1`, `gtk+-3.0`, `libsoup-3.0`, and the usual C
+  build tools. On Debian/Ubuntu:
+  `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev build-essential pkg-config`.
 
 ## Build and run
 
 ### Standalone desktop app
 
+Windows:
+
 ```powershell
 pwsh scripts/build.ps1
 ```
 
-Builds the sidecar, compiles the frontend, and bundles installers plus a
-portable executable under `app/src-tauri/target/release/`:
+Linux:
+
+```bash
+bash scripts/build.sh
+```
+
+Both build the sidecar, compile the frontend, and bundle the app under
+`app/src-tauri/target/release/`.
+
+Windows produces installers plus a portable executable:
 
 - `bundle/nsis/MeshManager_<version>_x64-setup.exe` (installer)
 - `bundle/msi/MeshManager_<version>_x64_en-US.msi` (MSI)
 - `meshmanager.exe` (portable, runs without installing)
+
+Linux produces:
+
+- `bundle/deb/MeshManager_<version>_amd64.deb`
+- `bundle/rpm/MeshManager-<version>-1.x86_64.rpm`
+- `bundle/appimage/MeshManager_<version>_amd64.AppImage` (portable)
 
 Builds are currently unsigned, so Windows SmartScreen warns on first run
 ("More info" then "Run anyway").
 
 ### Develop the desktop app
 
-```powershell
+```bash
 cd app
-bun install        # one time
-cargo tauri dev    # starts Vite and the desktop window together
+npm install        # one time
+npm run tauri dev  # starts Vite and the desktop window together
 ```
 
-Do not double-click the debug binary at
-`app/src-tauri/target/debug/meshmanager.exe` on its own: a debug Tauri build
-loads the dev server at `http://localhost:1420`, so without Vite running the
-window shows "can't reach this page". Use `cargo tauri dev`, or build a release
-bundle for a standalone app that embeds the frontend.
+`tauri dev` spawns the bundled `amtd` sidecar from `app/src-tauri/binaries/`,
+so build it at least once first (`bash scripts/build.sh`, or on Windows
+`pwsh scripts/build.ps1`) to produce the `amtd-<triple>` binary it expects.
+
+Do not run the debug binary at `app/src-tauri/target/debug/meshmanager` (or
+`meshmanager.exe` on Windows) on its own: a debug Tauri build loads the dev
+server at `http://localhost:1420`, so without Vite running the window shows
+"can't reach this page". Use `npm run tauri dev`, or build a release bundle for
+a standalone app that embeds the frontend.
 
 ### Develop in a browser (no Tauri)
+
+Windows:
 
 ```powershell
 cd app; bun install; cd ..
 pwsh scripts/dev.ps1
+```
+
+Linux:
+
+```bash
+cd app && npm install && cd ..
+bash scripts/dev.sh
 ```
 
 Starts the sidecar and the Vite dev server with a shared token, then serves the
@@ -197,10 +232,10 @@ Power actions: `on`, `off`, `off-graceful`, `reset`, `reset-graceful`, `cycle`,
 
 Run the sidecar by itself:
 
-```powershell
+```bash
 cd amtd
-go build -o amtd.exe .
-./amtd.exe -addr 127.0.0.1:7777 -token devtoken -log-dir ./logs -debug
+go build -o amtd .      # amtd.exe on Windows
+./amtd -addr 127.0.0.1:7777 -token devtoken -log-dir ./logs -debug
 ```
 
 ## Logs and bug reports
@@ -222,9 +257,10 @@ Retention is adjustable: the Add Device dialog has a "Keep logs for (days)"
 field. Because the sidecar's file logger starts with the app, a change takes
 effect on the next launch.
 
-In the packaged app the log folder is at
-`%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`. Click the Logs button in the
-sidebar footer to open it. When running the sidecar standalone, pass
+In the packaged app the log folder is the per-user app log directory: on
+Windows `%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`, on Linux
+`~/.local/share/com.emaspa.meshmanager/logs/` (or `$XDG_DATA_HOME`). Click the
+Logs button in the sidebar footer to open it. When running the sidecar standalone, pass
 `-log-dir <path>` (omit it to log to stderr only) and optionally
 `-log-max-age <days>` / `-log-max-backups <n>`.
 
