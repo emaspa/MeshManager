@@ -44,6 +44,18 @@ export function AboutDialog() {
           >
             {REPO_URL.replace("https://", "")}
           </button>
+
+          <p className="mt-4 border-t border-(--color-border) pt-3 text-[11px] leading-relaxed text-(--color-muted)">
+            Licensed under Apache 2.0. Includes code derived from{" "}
+            <button
+              onClick={() => openExternal("https://github.com/Ylianst/MeshCommander")}
+              className="underline decoration-dotted underline-offset-2 hover:text-(--color-text)"
+            >
+              MeshCommander
+            </button>{" "}
+            (© Ylian Saint-Hilaire, Apache 2.0) and other open-source software.
+            See the bundled LICENSE, NOTICE and THIRD_PARTY_NOTICES files.
+          </p>
         </div>
       </div>
     </div>

@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 MeshManager authors
+//
+// The redirection protocol and digest-auth handshake in this package are
+// derived from MeshCommander (https://github.com/Ylianst/MeshCommander),
+// Copyright Ylian Saint-Hilaire, licensed under Apache-2.0. Ported to Go and
+// modified by the MeshManager authors.
+
 // Package redirect implements the Intel AMT binary redirection protocol used
 // for Serial-over-LAN, KVM and IDE-R over ports 16994 (plain) / 16995 (TLS).
 //

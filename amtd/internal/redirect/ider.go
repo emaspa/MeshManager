@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 MeshManager authors
+//
+// The IDE-R ATAPI engine in this file (and ider_scsi.go) is derived from
+// MeshCommander (https://github.com/Ylianst/MeshCommander), Copyright Ylian
+// Saint-Hilaire, licensed under Apache-2.0. Ported to Go and modified by the
+// MeshManager authors.
+
 package redirect
 
 import (

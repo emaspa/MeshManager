@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 MeshManager authors
+//
+// Derived from MeshCommander (https://github.com/Ylianst/MeshCommander),
+// Copyright Ylian Saint-Hilaire, licensed under Apache-2.0. Ported to
+// TypeScript and modified by the MeshManager authors.
+//
 // AMT KVM client - a port of MeshCommander's Intel AMT RFB implementation.
 //
 // Intel AMT KVM is a custom RFB (VNC) variant, not standard VNC:

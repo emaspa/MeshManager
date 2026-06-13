@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 MeshManager authors
+//
+// The KVM redirection start sequence here is derived from MeshCommander
+// (https://github.com/Ylianst/MeshCommander), Copyright Ylian Saint-Hilaire,
+// Apache-2.0. Ported to Go and modified.
+
 package redirect
 
 import (

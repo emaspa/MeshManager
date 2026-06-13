@@ -141,4 +141,10 @@ it to log to stderr only).
 
 ## License
 
-TBD.
+MeshManager is licensed under the **Apache License 2.0** — see [`LICENSE`](LICENSE).
+
+Parts of the redirection layer (Serial-over-LAN, KVM, IDE-R) are derived from
+[MeshCommander](https://github.com/Ylianst/MeshCommander) (© Ylian
+Saint-Hilaire, Apache-2.0), ported and modified — see [`NOTICE`](NOTICE).
+Bundled open-source dependencies are listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

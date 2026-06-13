@@ -1,0 +1,32 @@
+MeshManager
+Copyright 2026 MeshManager authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+------------------------------------------------------------------------------
+Portions derived from MeshCommander
+------------------------------------------------------------------------------
+
+This product includes software derived from MeshCommander
+(https://github.com/Ylianst/MeshCommander), Copyright Ylian Saint-Hilaire,
+licensed under the Apache License, Version 2.0.
+
+The following parts were ported to Go/TypeScript and modified by the
+MeshManager authors:
+
+  - The Intel AMT KVM (RFB) client            -> app/src/lib/amtKvm.ts
+  - The IDE-R (IDE redirection) ATAPI engine  -> amtd/internal/redirect/ider.go,
+                                                 amtd/internal/redirect/ider_scsi.go
+  - The Serial-over-LAN / KVM / IDE-R
+    redirection handshake and digest auth     -> amtd/internal/redirect/redirect.go,
+                                                 sol.go, kvm.go
+
+These files have been changed from the originals; see their headers.
+
+------------------------------------------------------------------------------
+Bundled third-party components
+------------------------------------------------------------------------------
+
+See THIRD_PARTY_NOTICES.md for the licenses of the open-source libraries
+distributed with this software (including Intel's go-wsman-messages, which is
+also licensed under the Apache License, Version 2.0).
