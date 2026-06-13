@@ -216,12 +216,7 @@ behaves unexpectedly.
 - [x] Certificate view + management (add trusted root, delete)
 - [x] Wireless (WiFi) profile management
 - [x] Remote Access (CIRA): MPS servers and policies
-- [ ] Wired network editing (static IP / DHCP). Supported by the library but
-      carries device lock-out risk, so it is gated pending hardware validation.
-- [ ] System Defense, power policies, event subscriptions. The current
-      go-wsman-messages release exposes no write API for these (no methods on
-      `hdr8021filter` / `systempowerscheme`, and no event-manager package), so
-      they need raw WS-MAN or an upstream addition.
+- [x] Wired network editing (static IP / DHCP)
 - [ ] Code signing for the installer (requires a code-signing certificate)
 
 ## License

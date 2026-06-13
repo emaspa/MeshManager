@@ -227,6 +227,18 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  setNetwork: (
+    id: string,
+    cfg: {
+      instanceId: string;
+      dhcp: boolean;
+      ipAddress?: string;
+      subnetMask?: string;
+      defaultGateway?: string;
+      primaryDns?: string;
+      secondaryDns?: string;
+    },
+  ) => req<{ ok: boolean }>(`/api/devices/${id}/network`, { method: "POST", body: JSON.stringify(cfg) }),
   remoteAccess: (id: string) => req<RemoteAccessConfig>(`/api/devices/${id}/remoteaccess`),
   addMps: (
     id: string,

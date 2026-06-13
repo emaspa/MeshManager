@@ -385,6 +385,19 @@ func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, nics)
 }
 
+func (s *Server) handleSetNetwork(w http.ResponseWriter, r *http.Request) {
+	var cfg amt.WiredConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).SetWiredNetwork(cfg); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleEventLog(w http.ResponseWriter, r *http.Request) {
 	log, err := sessionFrom(r).EventLog()
 	if err != nil {

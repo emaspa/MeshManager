@@ -49,6 +49,7 @@ func (s *Server) Router() http.Handler {
 		r.Post("/boot", s.handleBoot)
 		r.Get("/hardware", s.handleHardware)
 		r.Get("/network", s.handleNetwork)
+		r.Post("/network", s.handleSetNetwork)
 		r.Get("/wifi", s.handleWiFi)
 		r.Post("/wifi", s.handleAddWiFi)
 		r.Delete("/wifi/{instanceId}", s.handleDeleteWiFi)

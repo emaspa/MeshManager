@@ -1,7 +1,10 @@
 package amt
 
 import (
+	"fmt"
+
 	"github.com/device-management-toolkit/go-wsman-messages/v2/pkg/wsman"
+	"github.com/device-management-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 )
 
 // NetworkInterface describes one AMT-managed network interface.
@@ -49,4 +52,72 @@ func (s *Session) Network() ([]NetworkInterface, error) {
 		return nil
 	})
 	return out, err
+}
+
+// WiredConfig describes the desired wired-interface IP configuration.
+type WiredConfig struct {
+	InstanceID     string `json:"instanceId"`
+	DHCP           bool   `json:"dhcp"`
+	IPAddress      string `json:"ipAddress"`
+	SubnetMask     string `json:"subnetMask"`
+	DefaultGateway string `json:"defaultGateway"`
+	PrimaryDNS     string `json:"primaryDns"`
+	SecondaryDNS   string `json:"secondaryDns"`
+}
+
+// SetWiredNetwork reconfigures a wired interface for DHCP or a dedicated static
+// IP. It reads the current settings and changes only the IP-related fields, to
+// avoid disturbing link policy / VLAN / MAC settings.
+//
+// WARNING: changing the AMT IP can make the device unreachable on its current
+// address; the caller (UI) gates this behind a confirmation.
+func (s *Session) SetWiredNetwork(c WiredConfig) error {
+	if c.InstanceID == "" {
+		return fmt.Errorf("interface instanceId is required")
+	}
+	if !c.DHCP && (c.IPAddress == "" || c.SubnetMask == "") {
+		return fmt.Errorf("static configuration requires IP address and subnet mask")
+	}
+	return s.withWSMAN(func(m *wsman.Messages) error {
+		cur, err := m.AMT.EthernetPortSettings.Get(c.InstanceID)
+		if err != nil {
+			return fmt.Errorf("read current settings: %w", err)
+		}
+		g := cur.Body.GetAndPutResponse
+
+		req := ethernetport.SettingsRequest{
+			ElementName:                  g.ElementName,
+			InstanceID:                   g.InstanceID,
+			VLANTag:                      g.VLANTag,
+			SharedMAC:                    g.SharedMAC,
+			LinkPolicy:                   g.LinkPolicy,
+			LinkPreference:               g.LinkPreference,
+			ConsoleTcpMaxRetransmissions: ethernetport.ConsoleTCPMaxRetransmissions(g.ConsoleTcpMaxRetransmissions),
+			PhysicalConnectionType:       g.PhysicalConnectionType,
+			PhysicalNicMedium:            g.PhysicalNicMedium,
+		}
+		if c.DHCP {
+			req.DHCPEnabled = true
+			req.IpSyncEnabled = true
+			req.SharedStaticIp = false
+		} else {
+			req.DHCPEnabled = false
+			req.IpSyncEnabled = false
+			req.SharedStaticIp = false
+			req.IPAddress = c.IPAddress
+			req.SubnetMask = c.SubnetMask
+			req.DefaultGateway = c.DefaultGateway
+			req.PrimaryDNS = c.PrimaryDNS
+			req.SecondaryDNS = c.SecondaryDNS
+		}
+
+		resp, err := m.AMT.EthernetPortSettings.Put(c.InstanceID, req)
+		if err != nil {
+			return err
+		}
+		if rv, ok := returnValue(resp.XMLOutput); ok && rv != 0 {
+			return fmt.Errorf("set wired network failed (AMT return value %d)", rv)
+		}
+		return nil
+	})
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Wifi, Trash2, Plus } from "lucide-react";
-import { api, ApiError } from "../../lib/api";
+import { Wifi, Trash2, Plus, Pencil } from "lucide-react";
+import { api, ApiError, type NetworkInterface } from "../../lib/api";
 import { Badge, Button, Card, Field, Input, Spinner } from "../../lib/ui";
 
 export function NetworkTab({ id }: { id: string }) {
@@ -16,26 +16,107 @@ export function NetworkTab({ id }: { id: string }) {
         <p className="text-sm text-(--color-muted)">No wired interfaces reported.</p>
       )}
       {net.data?.map((n) => (
-        <Card key={n.instanceId || n.name}>
-          <div className="mb-3 flex items-center gap-2">
-            <h3 className="font-medium">{n.name || n.instanceId}</h3>
-            <Badge tone={n.linkUp ? "good" : "muted"}>{n.linkUp ? "link up" : "link down"}</Badge>
-            <Badge tone="muted">{n.dhcpEnabled ? "DHCP" : "Static"}</Badge>
-            {n.sharedMac && <Badge tone="muted">shared MAC</Badge>}
-          </div>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-3">
-            <KV k="IP Address" v={n.ipAddress} />
-            <KV k="Subnet Mask" v={n.subnetMask} />
-            <KV k="Gateway" v={n.defaultGateway} />
-            <KV k="MAC" v={n.macAddress} />
-            <KV k="Primary DNS" v={n.primaryDns} />
-            <KV k="Secondary DNS" v={n.secondaryDns} />
-          </div>
-        </Card>
+        <WiredInterface key={n.instanceId || n.name} id={id} n={n} />
       ))}
 
       <Wireless id={id} />
     </div>
+  );
+}
+
+function WiredInterface({ id, n }: { id: string; n: NetworkInterface }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [dhcp, setDhcp] = useState(n.dhcpEnabled);
+  const [form, setForm] = useState({
+    ipAddress: n.ipAddress,
+    subnetMask: n.subnetMask,
+    defaultGateway: n.defaultGateway,
+    primaryDns: n.primaryDns,
+    secondaryDns: n.secondaryDns,
+  });
+
+  const save = useMutation({
+    mutationFn: () => api.setNetwork(id, { instanceId: n.instanceId, dhcp, ...form }),
+    onSuccess: () => {
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["network", id] });
+    },
+  });
+
+  return (
+    <Card>
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="font-medium">{n.name || n.instanceId}</h3>
+        <Badge tone={n.linkUp ? "good" : "muted"}>{n.linkUp ? "link up" : "link down"}</Badge>
+        <Badge tone="muted">{n.dhcpEnabled ? "DHCP" : "Static"}</Badge>
+        {n.sharedMac && <Badge tone="muted">shared MAC</Badge>}
+        {!editing && (
+          <Button variant="ghost" className="ml-auto px-1.5 py-1" onClick={() => setEditing(true)} title="Edit IP settings">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {!editing ? (
+        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-3">
+          <KV k="IP Address" v={n.ipAddress} />
+          <KV k="Subnet Mask" v={n.subnetMask} />
+          <KV k="Gateway" v={n.defaultGateway} />
+          <KV k="MAC" v={n.macAddress} />
+          <KV k="Primary DNS" v={n.primaryDns} />
+          <KV k="Secondary DNS" v={n.secondaryDns} />
+        </div>
+      ) : (
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const msg = dhcp
+              ? "Switch this interface to DHCP? The device's AMT address may change and could become unreachable on the current IP."
+              : `Set a static AMT IP (${form.ipAddress})? A wrong value can make the device unreachable.`;
+            if (confirm(msg)) save.mutate();
+          }}
+        >
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={dhcp} onChange={(e) => setDhcp(e.target.checked)} /> Use DHCP
+          </label>
+          {!dhcp && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <Field label="IP Address">
+                <Input value={form.ipAddress} onChange={(e) => setForm({ ...form, ipAddress: e.target.value })} required />
+              </Field>
+              <Field label="Subnet Mask">
+                <Input value={form.subnetMask} onChange={(e) => setForm({ ...form, subnetMask: e.target.value })} required />
+              </Field>
+              <Field label="Gateway">
+                <Input value={form.defaultGateway} onChange={(e) => setForm({ ...form, defaultGateway: e.target.value })} />
+              </Field>
+              <Field label="Primary DNS">
+                <Input value={form.primaryDns} onChange={(e) => setForm({ ...form, primaryDns: e.target.value })} />
+              </Field>
+              <Field label="Secondary DNS">
+                <Input value={form.secondaryDns} onChange={(e) => setForm({ ...form, secondaryDns: e.target.value })} />
+              </Field>
+            </div>
+          )}
+          <div className="rounded-md bg-(--color-warn)/15 px-3 py-2 text-xs text-(--color-warn)">
+            Changing the AMT IP can make this device unreachable at its current address. You may need to reconnect by its new IP.
+          </div>
+          {save.isError && (
+            <div className="rounded-md bg-(--color-bad)/15 px-3 py-2 text-sm text-(--color-bad)">
+              {save.error instanceof ApiError ? save.error.message : "Failed to apply"}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" disabled={save.isPending}>
+              {save.isPending ? "Applying…" : "Apply"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }
 
