@@ -103,6 +103,24 @@ API surface (all under `/api`, bearer-token auth except `/health`):
 Power actions: `on`, `off`, `off-graceful`, `reset`, `reset-graceful`,
 `cycle`, `sleep`, `hibernate`, `nmi`.
 
+## Logs & bug reports
+
+Everything logs to one place so a tester can attach a single folder to a report:
+
+- The sidecar writes rotating `amtd.log` files (5 MB × 5, gzipped) — startup
+  environment, one line per HTTP request (failures at warn/error), connect
+  results, and AMT operation errors.
+- The Tauri shell tees the sidecar's stdout/stderr to `shell.log` as a safety
+  net (captures crashes before the sidecar can write its own log).
+- The frontend funnels `window.onerror`, unhandled promise rejections, and API
+  failures to the sidecar via `POST /api/log`, so UI errors appear in `amtd.log`
+  tagged `src=ui` with a stack.
+
+In the packaged app the log folder is under
+`%LOCALAPPDATA%\com.emaspa.meshmanager\logs\`. Click **Logs** in the sidebar
+footer to open it. Running the sidecar standalone, pass `-log-dir <path>` (omit
+it to log to stderr only).
+
 ## Roadmap
 
 - [x] WS-MAN transport (Digest/TLS) + session management

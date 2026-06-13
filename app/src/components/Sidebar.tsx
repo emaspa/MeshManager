@@ -1,9 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Server, Wifi, WifiOff, Radar } from "lucide-react";
+import { Plus, Server, Wifi, WifiOff, Radar, FileText } from "lucide-react";
 import clsx from "clsx";
 import { api } from "../lib/api";
 import { useUi } from "../store";
 import { Button, Spinner } from "../lib/ui";
+
+function isTauri() {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+async function openLogs() {
+  if (!isTauri()) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("open_logs");
+  } catch {
+    /* ignore */
+  }
+}
 
 export function Sidebar() {
   const { selectedId, select, openConnect, setDiscoverOpen } = useUi();
@@ -68,8 +82,17 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="border-t border-[--color-border] px-4 py-2 text-xs text-[--color-muted]">
-        {health.data ? `amtd v${health.data.version}` : "connecting to amtd…"}
+      <div className="flex items-center justify-between border-t border-[--color-border] px-4 py-2 text-xs text-[--color-muted]">
+        <span>{health.data ? `amtd v${health.data.version}` : "connecting to amtd…"}</span>
+        {isTauri() && (
+          <button
+            onClick={openLogs}
+            title="Open log folder (for bug reports)"
+            className="flex items-center gap-1 hover:text-[--color-text]"
+          >
+            <FileText className="h-3.5 w-3.5" /> Logs
+          </button>
+        )}
       </div>
     </aside>
   );

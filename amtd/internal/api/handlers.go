@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -41,9 +42,11 @@ func (s *Server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, err := s.sessions.Connect(p)
 	if err != nil {
+		slog.Warn("connect failed", "host", p.Host, "port", p.Port, "tls", p.TLS, "err", err.Error())
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
+	slog.Info("connected", "id", sess.ID, "host", sess.Host, "port", sess.Port, "tls", sess.TLS)
 	writeJSON(w, http.StatusOK, sess)
 }
 

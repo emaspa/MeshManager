@@ -30,10 +30,12 @@ func NewServer(sessions *amt.SessionManager, token, version string) *Server {
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(requestLogger)
 	r.Use(corsMiddleware)
 	r.Use(s.authMiddleware)
 
 	r.Get("/api/health", s.handleHealth)
+	r.Post("/api/log", s.handleClientLog)
 	r.Post("/api/connect", s.handleConnect)
 	r.Post("/api/discover", s.handleDiscover)
 	r.Get("/api/devices", s.handleListDevices)

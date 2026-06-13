@@ -10,13 +10,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
+
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/emaspa/meshmanager/amtd/internal/amt"
 	"github.com/emaspa/meshmanager/amtd/internal/api"
@@ -27,9 +32,10 @@ var Version = "0.1.0-dev"
 
 func main() {
 	var (
-		addr  = flag.String("addr", "127.0.0.1:0", "address to listen on (port 0 = OS-assigned)")
-		token = flag.String("token", "", "bearer token required on every request; empty disables auth (dev only)")
-		debug = flag.Bool("debug", false, "enable debug logging, including raw AMT message tracing")
+		addr   = flag.String("addr", "127.0.0.1:0", "address to listen on (port 0 = OS-assigned)")
+		token  = flag.String("token", "", "bearer token required on every request; empty disables auth (dev only)")
+		debug  = flag.Bool("debug", false, "enable debug logging, including raw AMT message tracing")
+		logDir = flag.String("log-dir", "", "directory for rotating log files; logs to stderr only if empty")
 	)
 	flag.Parse()
 
@@ -37,7 +43,26 @@ func main() {
 	if *debug {
 		level = slog.LevelDebug
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+
+	// Always log to stderr (captured by the Tauri shell). When a log dir is
+	// given, also write a rotating file so testers can attach logs to reports.
+	var w io.Writer = os.Stderr
+	var logFile string
+	if *logDir != "" {
+		if err := os.MkdirAll(*logDir, 0o755); err == nil {
+			logFile = filepath.Join(*logDir, "amtd.log")
+			w = io.MultiWriter(os.Stderr, &lumberjack.Logger{
+				Filename:   logFile,
+				MaxSize:    5, // megabytes per file
+				MaxBackups: 5,
+				MaxAge:     30, // days
+				Compress:   true,
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "log dir %q unusable: %v (stderr only)\n", *logDir, err)
+		}
+	}
+	logger := slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{Level: level}))
 	slog.SetDefault(logger)
 
 	// Bind first so we can print the chosen port before serving. Tauri reads
@@ -60,7 +85,16 @@ func main() {
 	// machine-readable endpoint announcement.
 	fmt.Printf("AMTD_LISTENING %s\n", ln.Addr().String())
 	os.Stdout.Sync()
-	logger.Info("amtd listening", "addr", ln.Addr().String(), "version", Version, "auth", *token != "")
+	logger.Info("amtd started",
+		"version", Version,
+		"addr", ln.Addr().String(),
+		"auth", *token != "",
+		"pid", os.Getpid(),
+		"os", runtime.GOOS,
+		"arch", runtime.GOARCH,
+		"go", runtime.Version(),
+		"logFile", logFile,
+	)
 
 	go func() {
 		if err := httpServer.Serve(ln); err != nil && err != http.ErrServerClosed {

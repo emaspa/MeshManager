@@ -1,4 +1,5 @@
 import { sidecar } from "./sidecar";
+import { clientLog } from "./logger";
 
 // --- Types mirrored from the Go sidecar JSON responses ---
 
@@ -135,11 +136,20 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init?.body) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  } catch (e) {
+    // Network-level failure the sidecar never sees — capture it client-side.
+    void clientLog("error", `request to ${path} failed: ${String(e)}`, "api.fetch");
+    throw e;
+  }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error ?? res.statusText);
+    const message = data?.error ?? res.statusText;
+    void clientLog("warn", `${init?.method ?? "GET"} ${path} → ${res.status}: ${message}`, "api");
+    throw new ApiError(res.status, message);
   }
   return data as T;
 }

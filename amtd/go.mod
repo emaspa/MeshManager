@@ -6,6 +6,7 @@ require (
 	github.com/device-management-toolkit/go-wsman-messages/v2 v2.48.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/gorilla/websocket v1.5.3
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
