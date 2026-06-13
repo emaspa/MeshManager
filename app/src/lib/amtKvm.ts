@@ -45,6 +45,7 @@ interface KvmRegion {
   intervals: number[]; // recent inter-update gaps (ms)
   candidate: boolean; // repeated + periodic -> worth hashing
   detected: boolean; // settled into a 2-state blink
+  rejected: boolean; // too many distinct images -> real content, give up
   keepSig: number | null; // signature of the phase we display
   // signature -> stats for that phase (occurrences, luma variance, last clean bitmap)
   sigs: Map<number, { n: number; variance: number; img: ImageData | null }>;
@@ -85,6 +86,7 @@ export class AmtKvmClient {
   private regions = new Map<string, KvmRegion>();
   private indicatorFound = false;
   private onIndicator?: (found: boolean) => void;
+  private lastDebug = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -470,11 +472,10 @@ export class AmtKvmClient {
   swapIndicatorPhase() {
     for (const r of this.regions.values()) {
       if (!r.detected || r.sigs.size < 2) continue;
-      const other = [...r.sigs.keys()].find((sig) => sig !== r.keepSig);
-      if (other != null) {
-        r.keepSig = other;
-        for (const e of r.sigs.values()) e.img = null; // re-snapshot the new clean phase
-      }
+      // Switch to the next most frequent phase that isn't the current one.
+      const ranked = [...r.sigs.entries()].sort((a, b) => b[1].n - a[1].n);
+      const other = ranked.find(([sig]) => sig !== r.keepSig);
+      if (other) r.keepSig = other[0];
     }
     if (this.state >= 4) this.sendRefresh();
   }
@@ -489,11 +490,12 @@ export class AmtKvmClient {
   }
 
   private maskCommit(x: number, y: number, w: number, h: number) {
+    const draw = () => this.ctx.putImageData(this.spare!, x, y);
     const key = x + "," + y;
     const now = Date.now();
     let r = this.regions.get(key);
     if (!r) {
-      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, keepSig: null, sigs: new Map() };
+      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, rejected: false, keepSig: null, sigs: new Map() };
       this.regions.set(key, r);
     }
     r.count++;
@@ -502,78 +504,116 @@ export class AmtKvmClient {
       if (r.intervals.length > 8) r.intervals.shift();
     }
     r.last = now;
+    this.maybeDebug(now);
 
-    // Promote to candidate only once a tile near a screen edge has repeated on a
-    // periodic cadence. The edge constraint excludes most blinking text carets.
-    if (!r.candidate && r.count >= 4 && this.edgeNear(x, y, w, h) && this.periodic(r.intervals)) {
-      r.candidate = true;
-    }
-    if (!r.candidate) {
-      this.ctx.putImageData(this.spare!, x, y);
+    if (r.rejected) return draw();
+
+    // A tile that keeps updating at the same coordinates on a periodic cadence
+    // is worth analyzing (a static desktop sends nothing while idle).
+    if (!r.candidate && r.count >= 3 && this.periodic(r.intervals)) r.candidate = true;
+    if (!r.candidate) return draw();
+
+    const sig = this.tileSig();
+
+    // Already locked on: show the kept (desktop) phase, suppress everything else.
+    if (r.detected) {
+      if (sig === r.keepSig) {
+        draw();
+        const e = r.sigs.get(sig);
+        if (e) e.img = this.cloneSpare(); // keep the freshest clean patch
+      } else {
+        const keep = r.keepSig != null ? r.sigs.get(r.keepSig) : null;
+        if (keep?.img) this.ctx.putImageData(keep.img, x, y);
+        else draw(); // no clean snapshot yet
+      }
       return;
     }
 
-    const sig = this.tileSig();
+    // Pre-lock: record each distinct image (with a snapshot) and its stats.
     let se = r.sigs.get(sig);
     if (!se) {
-      se = { n: 0, variance: this.tileVariance(), img: null };
+      se = { n: 0, variance: this.tileVariance(), img: this.cloneSpare() };
       r.sigs.set(sig, se);
     }
     se.n++;
 
-    // More than two recurring images means this is real content, not a 2-state
-    // blink. Abandon the region and let it draw normally.
-    if (r.sigs.size > 2) {
-      this.regions.delete(key);
-      this.ctx.putImageData(this.spare!, x, y);
-      return;
+    // Too many distinct images: this is real changing content, not a blink.
+    if (r.sigs.size > 8) {
+      r.rejected = true;
+      r.sigs.clear();
+      return draw();
     }
 
-    if (!r.detected && r.sigs.size === 2) {
-      const vals = [...r.sigs.values()];
-      if (vals.every((v) => v.n >= 2)) {
-        r.detected = true;
-        // Keep the calmer (lower luma variance) phase: the plain desktop, not
-        // the busier overlay icon.
-        const entries = [...r.sigs.entries()];
-        r.keepSig = entries[0][1].variance <= entries[1][1].variance ? entries[0][0] : entries[1][0];
-        if (!this.indicatorFound) {
-          this.indicatorFound = true;
-          this.onIndicator?.(true);
-          void clientLog("info", `kvm: session indicator detected at ${key} (${w}x${h})`, "kvm");
+    // Lock on when the two most frequent images each recur and differ over a
+    // meaningful area (an icon, not a 1-2px text caret blinking on/off).
+    if (r.sigs.size >= 2) {
+      const top = [...r.sigs.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 2);
+      if (top[0][1].n >= 2 && top[1][1].n >= 2) {
+        const frac = this.diffFraction(top[0][1].img!, top[1][1].img!);
+        if (frac >= 0.03) {
+          r.detected = true;
+          // Keep the calmer (lower variance) phase: the plain desktop behind
+          // the busier overlay icon. The swap button fixes a wrong guess.
+          r.keepSig = top[0][1].variance <= top[1][1].variance ? top[0][0] : top[1][0];
+          if (!this.indicatorFound) {
+            this.indicatorFound = true;
+            this.onIndicator?.(true);
+          }
+          void clientLog("info", `kvm: indicator locked at ${key} ${w}x${h} diff=${Math.round(frac * 100)}%`, "kvm");
+          if (sig === r.keepSig) draw();
+          else {
+            const keep = r.sigs.get(r.keepSig);
+            if (keep?.img) this.ctx.putImageData(keep.img, x, y);
+            else draw();
+          }
+          return;
         }
       }
     }
 
-    if (r.detected) {
-      if (sig === r.keepSig) {
-        this.ctx.putImageData(this.spare!, x, y);
-        se.img = this.cloneSpare(); // remember this clean patch
-      } else {
-        const keep = r.keepSig != null ? r.sigs.get(r.keepSig) : null;
-        if (keep?.img) this.ctx.putImageData(keep.img, x, y); // re-paint desktop over the icon
-        // else: nothing clean cached yet, so just drop the icon tile
-      }
-      return;
-    }
-
     // Candidate but not yet settled: draw normally for now.
-    this.ctx.putImageData(this.spare!, x, y);
+    draw();
   }
 
-  private edgeNear(x: number, y: number, w: number, h: number): boolean {
-    const m = 160; // indicator sits within this many px of a screen edge
-    return x <= m || y <= m || x + w >= this.width - m || y + h >= this.height - m;
+  /** Throttled diagnostics + pruning of one-shot regions, while masking is on. */
+  private maybeDebug(now: number) {
+    if (now - this.lastDebug < 2000) return;
+    this.lastDebug = now;
+    const parts: string[] = [];
+    for (const [k, r] of this.regions) {
+      if (r.count >= 3) {
+        parts.push(`${k}{n=${r.count},sig=${r.sigs.size},c=${r.candidate ? 1 : 0},d=${r.detected ? 1 : 0},rej=${r.rejected ? 1 : 0}}`);
+      }
+    }
+    if (parts.length) void clientLog("info", `kvm mask: ${parts.slice(0, 14).join(" ")}`, "kvm");
+    // Drop transient single-update tiles so the map doesn't grow without bound.
+    if (this.regions.size > 3000) {
+      for (const [k, r] of this.regions) {
+        if (!r.candidate && r.count < 2) this.regions.delete(k);
+      }
+    }
   }
 
   private periodic(intervals: number[]): boolean {
-    if (intervals.length < 3) return false;
+    if (intervals.length < 2) return false;
     let mn = Infinity, mx = 0;
     for (const v of intervals) {
       if (v < mn) mn = v;
       if (v > mx) mx = v;
     }
-    return mn >= 120 && mx <= 2500 && mx <= mn * 4;
+    return mn >= 80 && mx <= 4000 && mx <= mn * 5;
+  }
+
+  /** Fraction of pixels that differ noticeably between two equal-size tiles. */
+  private diffFraction(a: ImageData, b: ImageData): number {
+    const da = a.data, db = b.data;
+    const total = da.length >> 2;
+    if (!total || da.length !== db.length) return 0;
+    let diff = 0;
+    for (let i = 0; i < da.length; i += 4) {
+      if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 48) diff++;
+    }
+    return diff / total;
   }
 
   /** FNV-1a hash over the current spare tile's RGB bytes. */
