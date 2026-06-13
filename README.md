@@ -17,6 +17,8 @@ License: Apache 2.0. Platform: the desktop build runs on Windows, macOS, and
 Linux (Linux bundles as deb / rpm / AppImage; macOS as .app / .dmg); the Go
 sidecar and React UI are cross-platform.
 
+![MeshManager screenshot](docs/screenshot.png)
+
 ## Features
 
 Connectivity
