@@ -54,8 +54,9 @@ Redirection
 - KVM remote desktop: selectable color depth (16-bit, 8-bit, grayscale) and
   compression, mouse + keyboard forwarding, a special-keys menu
   (Ctrl+Alt+Del, Alt+Tab, Alt+F4, Win, function keys, ...), paste-as-keystrokes,
-  view-only mode, fit / actual scaling, screenshot, fullscreen, and video
-  recording to WebM.
+  view-only mode, fit / actual scaling, screenshot, fullscreen, video
+  recording to WebM, a data-activity LED, and an experimental, opt-in masking
+  of the firmware's blinking session indicator (see below).
 - IDE-R: boot a machine from a local ISO, served as a virtual CD-ROM by the
   sidecar (ATAPI emulation).
 
@@ -64,6 +65,27 @@ Tooling
 - Scheduled wake (Alarm Clock): add / list / remove wake-ups.
 - Logging designed for bug reports (see [Logs and bug reports](#logs-and-bug-reports)),
   an About dialog, and the app version in the window title.
+
+### KVM session indicator masking
+
+While a KVM session is open, the managed PC's Intel ME firmware paints a
+blinking "session active" indicator directly into the framebuffer. This is a
+deliberate privacy feature, and there is no AMT or WS-MAN setting to turn it
+off, so it shows up on the remote image we receive.
+
+The KVM view has an experimental, off-by-default toggle that masks it on our
+canvas only (it does not and cannot change anything on the managed PC). The
+indicator arrives as tile updates that repeat at the same screen coordinates on
+a periodic cadence, alternating between the lit icon and the real desktop
+underneath. MeshManager detects that two-state blink near a screen edge, keeps
+the calmer (desktop) phase, and re-paints it over the lit phase. A swap button
+appears once an indicator is detected, to flip which phase is hidden if the
+automatic guess is wrong.
+
+Because it is a heuristic it may need tuning per firmware version and
+resolution: the indicator can flash a couple of times before the detector locks
+on, and the masked region may look briefly frozen if content directly under the
+icon is changing. Detection is logged as `kvm: session indicator detected`.
 
 ## Architecture
 
