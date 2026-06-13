@@ -60,7 +60,7 @@ jobs:
             goarch: amd64
             ext: ".exe"
             args: ""
-          - platform: macos-14
+          - platform: macos-latest
             triple: aarch64-apple-darwin
             goos: darwin
             goarch: arm64
