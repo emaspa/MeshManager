@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { MonitorSmartphone, Play, Square, Keyboard } from "lucide-react";
+import {
+  MonitorSmartphone,
+  Play,
+  Square,
+  Keyboard,
+  Type,
+  Camera,
+  Expand,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { wsUrl } from "../../lib/api";
 import {
   AmtKvmClient,
@@ -26,13 +36,37 @@ export function KvmTab({ id }: { id: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const clientRef = useRef<AmtKvmClient | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const maskRef = useRef(0);
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState("");
   const [colorDepth, setColorDepth] = useState<ColorDepth>("16");
   const [compression, setCompression] = useState<Compression>("none");
+  const [viewOnly, setViewOnly] = useState(false);
+  const [actualSize, setActualSize] = useState(false);
 
   useEffect(() => () => wsRef.current?.close(), []);
+
+  function screenshot() {
+    const url = canvasRef.current?.toDataURL("image/png");
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kvm-${Date.now()}.png`;
+    a.click();
+  }
+
+  function typeText() {
+    const text = prompt("Type text into the remote screen:");
+    if (text) clientRef.current?.sendText(text);
+  }
+
+  function toggleFullscreen() {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen?.();
+  }
 
   async function connect() {
     const canvas = canvasRef.current;
@@ -84,13 +118,13 @@ export function KvmTab({ id }: { id: string }) {
   }
 
   function onMouse(e: React.MouseEvent<HTMLCanvasElement>, mask: number) {
-    if (state !== "running") return;
+    if (state !== "running" || viewOnly) return;
     const { x, y } = pointerPos(e);
     clientRef.current?.sendPointer(x, y, mask);
   }
 
   function onKey(e: React.KeyboardEvent, down: boolean) {
-    if (state !== "running") return;
+    if (state !== "running" || viewOnly) return;
     const k = amtKeyFromEvent(e.nativeEvent);
     if (k != null) {
       clientRef.current?.sendKey(k, down);
@@ -132,9 +166,27 @@ export function KvmTab({ id }: { id: string }) {
             </>
           )}
           {state === "running" && (
-            <Button onClick={() => clientRef.current?.sendCtrlAltDel()} title="Send Ctrl+Alt+Del">
-              <Keyboard className="h-4 w-4" /> Ctrl+Alt+Del
-            </Button>
+            <>
+              <label className="flex items-center gap-1 text-sm text-(--color-muted)" title="Stop sending input">
+                <input type="checkbox" checked={viewOnly} onChange={(e) => setViewOnly(e.target.checked)} />
+                View only
+              </label>
+              <Button onClick={() => setActualSize((v) => !v)} title="Toggle fit / actual size">
+                {actualSize ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button onClick={typeText} title="Type text">
+                <Type className="h-4 w-4" />
+              </Button>
+              <Button onClick={screenshot} title="Screenshot">
+                <Camera className="h-4 w-4" />
+              </Button>
+              <Button onClick={toggleFullscreen} title="Fullscreen">
+                <Expand className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => clientRef.current?.sendCtrlAltDel()} title="Send Ctrl+Alt+Del">
+                <Keyboard className="h-4 w-4" /> Ctrl+Alt+Del
+              </Button>
+            </>
           )}
           {state === "running" ? (
             <Button variant="danger" onClick={disconnect}>
@@ -152,13 +204,16 @@ export function KvmTab({ id }: { id: string }) {
           {error}
         </div>
       )}
-      <div className="flex flex-1 items-center justify-center overflow-auto rounded-lg border border-(--color-border) bg-black">
+      <div
+        ref={containerRef}
+        className="flex flex-1 items-center justify-center overflow-auto rounded-lg border border-(--color-border) bg-black"
+      >
         <canvas
           ref={canvasRef}
           width={640}
           height={400}
           tabIndex={0}
-          className="max-h-full max-w-full outline-none"
+          className={actualSize ? "outline-none" : "max-h-full max-w-full outline-none"}
           style={{ imageRendering: "pixelated" }}
           onMouseDown={(e) => {
             canvasRef.current?.focus();

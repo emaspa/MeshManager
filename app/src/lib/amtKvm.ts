@@ -480,6 +480,17 @@ export class AmtKvmClient {
       (keysym >> 24) & 0xff, (keysym >> 16) & 0xff, (keysym >> 8) & 0xff, keysym & 0xff]);
   }
 
+  /** Types a string by sending each character as a key down/up (keysym = code
+   *  point for printable Latin-1). Useful for pasting into BIOS / login. */
+  sendText(text: string) {
+    for (const ch of text) {
+      const code = ch.codePointAt(0);
+      if (code == null) continue;
+      this.sendKey(code, true);
+      this.sendKey(code, false);
+    }
+  }
+
   /** Ctrl+Alt+Del sequence. */
   sendCtrlAltDel() {
     const seq: [number, boolean][] = [
