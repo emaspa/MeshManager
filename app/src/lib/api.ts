@@ -57,6 +57,7 @@ export interface Hardware {
   processors: {
     id: string;
     model: string;
+    manufacturer: string;
     family: number;
     maxClockMhz: number;
     currentClockMhz: number;
@@ -73,7 +74,13 @@ export interface Hardware {
     partNumber: string;
     serialNumber: string;
   }[];
-  disks: { deviceId: string; maxMediaKb: number; elementName: string }[];
+  disks: {
+    deviceId: string;
+    model: string;
+    serialNumber: string;
+    maxMediaKb: number;
+    elementName: string;
+  }[];
 }
 
 export interface EventLogEntry {

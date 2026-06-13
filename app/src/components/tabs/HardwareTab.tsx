@@ -28,9 +28,10 @@ export function HardwareTab({ id }: { id: string }) {
       <Card>
         <h3 className="mb-3 font-medium">Processors ({d.processors.length})</h3>
         <Table
-          head={["Model", "Max MHz", "Current MHz", "Stepping", "Status"]}
+          head={["Model", "Manufacturer", "Max MHz", "Current MHz", "Stepping", "Status"]}
           rows={d.processors.map((p) => [
             p.model || p.id,
+            p.manufacturer,
             String(p.maxClockMhz),
             String(p.currentClockMhz),
             p.stepping,
@@ -59,8 +60,12 @@ export function HardwareTab({ id }: { id: string }) {
       <Card>
         <h3 className="mb-3 font-medium">Storage ({d.disks.length})</h3>
         <Table
-          head={["Model", "Device ID", "Capacity (KB)"]}
-          rows={d.disks.map((x) => [x.elementName || x.deviceId, x.deviceId, String(x.maxMediaKb)])}
+          head={["Model", "Serial", "Capacity (KB)"]}
+          rows={d.disks.map((x) => [
+            x.model || x.elementName || x.deviceId,
+            x.serialNumber || "-",
+            String(x.maxMediaKb),
+          ])}
         />
       </Card>
     </div>

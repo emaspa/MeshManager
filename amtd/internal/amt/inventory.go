@@ -28,7 +28,8 @@ type SystemInfo struct {
 
 type ProcessorInfo struct {
 	ID           string `json:"id"`
-	Model        string `json:"model"`
+	Model        string `json:"model"` // brand/version string (from CIM_Chip)
+	Manufacturer string `json:"manufacturer"`
 	Family       int    `json:"family"`
 	MaxClockMHz  int    `json:"maxClockMhz"`
 	CurrentClock int    `json:"currentClockMhz"`
@@ -48,9 +49,11 @@ type MemoryInfo struct {
 }
 
 type DiskInfo struct {
-	DeviceID    string `json:"deviceId"`
-	MaxMediaKB  int    `json:"maxMediaKb"`
-	ElementName string `json:"elementName"`
+	DeviceID     string `json:"deviceId"`
+	Model        string `json:"model"`        // from CIM_PhysicalPackage
+	SerialNumber string `json:"serialNumber"` // from CIM_PhysicalPackage
+	MaxMediaKB   int    `json:"maxMediaKb"`
+	ElementName  string `json:"elementName"`
 }
 
 // memoryFormFactor decodes the SMBIOS form-factor code.
@@ -86,11 +89,22 @@ func (s *Session) Hardware() (Hardware, error) {
 			}
 		}
 
+		// CPU brand/version + manufacturer live in CIM_Chip, paired by index
+		// with CIM_Processor (same order, per the AMT inventory layout).
+		var chips []struct{ manufacturer, version string }
+		if enum, err := m.CIM.Chip.Enumerate(); err == nil {
+			if pull, err := m.CIM.Chip.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
+				for _, c := range pull.Body.PullResponse.ChipItems {
+					chips = append(chips, struct{ manufacturer, version string }{c.Manufacturer, c.Version})
+				}
+			}
+		}
+
 		// Processors.
 		if enum, err := m.CIM.Processor.Enumerate(); err == nil {
 			if pull, err := m.CIM.Processor.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
-				for _, p := range pull.Body.PullResponse.PackageItems {
-					hw.Processors = append(hw.Processors, ProcessorInfo{
+				for idx, p := range pull.Body.PullResponse.PackageItems {
+					pi := ProcessorInfo{
 						ID:           p.DeviceID,
 						Model:        p.ElementName,
 						Family:       int(p.Family),
@@ -98,7 +112,14 @@ func (s *Session) Hardware() (Hardware, error) {
 						CurrentClock: p.CurrentClockSpeed,
 						Stepping:     p.Stepping,
 						Status:       p.HealthState.String(),
-					})
+					}
+					if idx < len(chips) {
+						pi.Manufacturer = chips[idx].manufacturer
+						if chips[idx].version != "" {
+							pi.Model = chips[idx].version
+						}
+					}
+					hw.Processors = append(hw.Processors, pi)
 				}
 			}
 		}
@@ -121,15 +142,31 @@ func (s *Session) Hardware() (Hardware, error) {
 			}
 		}
 
+		// Storage model + serial come from CIM_PhysicalPackage, paired with
+		// CIM_MediaAccessDevice at index+1 (package[0] is the system enclosure).
+		var pkgs []struct{ model, serial string }
+		if enum, err := m.CIM.PhysicalPackage.Enumerate(); err == nil {
+			if pull, err := m.CIM.PhysicalPackage.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
+				for _, p := range pull.Body.PullResponse.PhysicalPackage {
+					pkgs = append(pkgs, struct{ model, serial string }{p.Model, p.SerialNumber})
+				}
+			}
+		}
+
 		// Disks / media access devices.
 		if enum, err := m.CIM.MediaAccessDevice.Enumerate(); err == nil {
 			if pull, err := m.CIM.MediaAccessDevice.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
-				for _, d := range pull.Body.PullResponse.MediaAccessDevices {
-					hw.Disks = append(hw.Disks, DiskInfo{
+				for idx, d := range pull.Body.PullResponse.MediaAccessDevices {
+					di := DiskInfo{
 						DeviceID:    d.DeviceID,
 						ElementName: d.ElementName,
 						MaxMediaKB:  int(d.MaxMediaSize),
-					})
+					}
+					if p := idx + 1; p < len(pkgs) {
+						di.Model = pkgs[p].model
+						di.SerialNumber = pkgs[p].serial
+					}
+					hw.Disks = append(hw.Disks, di)
 				}
 			}
 		}
