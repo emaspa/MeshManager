@@ -46,6 +46,7 @@ interface KvmRegion {
   candidate: boolean; // repeated + periodic -> worth hashing
   detected: boolean; // settled into a 2-state blink
   rejected: boolean; // too many distinct images -> real content, give up
+  miss: number; // consecutive post-lock updates of unknown content
   keepSig: number | null; // signature of the phase we display
   // signature -> stats for that phase (occurrences, luma variance, last clean bitmap)
   sigs: Map<number, { n: number; variance: number; img: ImageData | null }>;
@@ -495,7 +496,7 @@ export class AmtKvmClient {
     const now = Date.now();
     let r = this.regions.get(key);
     if (!r) {
-      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, rejected: false, keepSig: null, sigs: new Map() };
+      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, rejected: false, miss: 0, keepSig: null, sigs: new Map() };
       this.regions.set(key, r);
     }
     r.count++;
@@ -517,14 +518,23 @@ export class AmtKvmClient {
 
     // Already locked on: show the kept (desktop) phase, suppress everything else.
     if (r.detected) {
+      const keep = r.keepSig != null ? r.sigs.get(r.keepSig) : null;
       if (sig === r.keepSig) {
         draw();
-        const e = r.sigs.get(sig);
-        if (e) e.img = this.cloneSpare(); // keep the freshest clean patch
+        if (keep) keep.img = this.cloneSpare(); // keep the freshest clean patch
+        r.miss = 0;
+      } else if (r.sigs.has(sig)) {
+        if (keep?.img) this.ctx.putImageData(keep.img, x, y); // the icon phase -> mask
+        r.miss = 0;
+      } else if (++r.miss >= 4) {
+        // Sustained unknown content: the icon moved or a window opened here.
+        // Release the lock so the region is re-evaluated from scratch.
+        this.regions.delete(key);
+        draw();
+      } else if (keep?.img) {
+        this.ctx.putImageData(keep.img, x, y); // tentatively keep masking
       } else {
-        const keep = r.keepSig != null ? r.sigs.get(r.keepSig) : null;
-        if (keep?.img) this.ctx.putImageData(keep.img, x, y);
-        else draw(); // no clean snapshot yet
+        draw();
       }
       return;
     }
@@ -550,7 +560,10 @@ export class AmtKvmClient {
       const top = [...r.sigs.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 2);
       if (top[0][1].n >= 2 && top[1][1].n >= 2) {
         const frac = this.diffFraction(top[0][1].img!, top[1][1].img!);
-        if (frac >= 0.03) {
+        // A tile touching an already-locked tile is part of the same icon, so a
+        // tiny blinking sliver (the icon's edge spilling into it) is enough.
+        const minDiff = this.hasDetectedNeighbor(x, y, w, h) ? 0.004 : 0.02;
+        if (frac >= minDiff) {
           r.detected = true;
           // Keep the calmer (lower variance) phase: the plain desktop behind
           // the busier overlay icon. The swap button fixes a wrong guess.
@@ -602,6 +615,16 @@ export class AmtKvmClient {
       if (v > mx) mx = v;
     }
     return mn >= 80 && mx <= 4000 && mx <= mn * 5;
+  }
+
+  /** True if a tile abutting this one has already locked onto the indicator. */
+  private hasDetectedNeighbor(x: number, y: number, w: number, h: number): boolean {
+    const keys = [`${x - w},${y}`, `${x + w},${y}`, `${x},${y - h}`, `${x},${y + h}`,
+      `${x - 64},${y}`, `${x + 64},${y}`, `${x},${y - 64}`, `${x},${y + 64}`];
+    for (const k of keys) {
+      if (this.regions.get(k)?.detected) return true;
+    }
+    return false;
   }
 
   /** Fraction of pixels that differ noticeably between two equal-size tiles. */
