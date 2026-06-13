@@ -1,5 +1,9 @@
 # MeshManager
 
+[![Release](https://img.shields.io/github/v/release/emaspa/meshmanager)](https://github.com/emaspa/meshmanager/releases/latest)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+
 A modern Intel(R) AMT / vPro management console. It is a ground-up rebuild of
 the classic MeshCommander, built with a Go protocol engine, a typed React UI,
 and a Tauri desktop shell.
