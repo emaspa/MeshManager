@@ -113,6 +113,14 @@ export interface Account {
   enabled: boolean;
 }
 
+export interface WiFiProfile {
+  instanceId: string;
+  name: string;
+  ssid: string;
+  auth: string;
+  priority: number;
+}
+
 export interface Certificate {
   instanceId: string;
   name: string;
@@ -204,6 +212,13 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  wifi: (id: string) => req<WiFiProfile[]>(`/api/devices/${id}/wifi`),
+  addWifi: (id: string, body: { ssid: string; passphrase: string; priority: number }) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/wifi`, { method: "POST", body: JSON.stringify(body) }),
+  deleteWifi: (id: string, instanceId: string) =>
+    req<{ ok: boolean }>(`/api/devices/${id}/wifi/${encodeURIComponent(instanceId)}`, {
+      method: "DELETE",
+    }),
   browseClasses: (id: string) => req<string[]>(`/api/devices/${id}/browse/classes`),
   browse: (id: string, className: string) =>
     req<unknown>(`/api/devices/${id}/browse?class=${encodeURIComponent(className)}`),

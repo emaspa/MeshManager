@@ -281,6 +281,40 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleWiFi(w http.ResponseWriter, r *http.Request) {
+	profiles, err := sessionFrom(r).WiFiProfiles()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, profiles)
+}
+
+func (s *Server) handleAddWiFi(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		SSID       string `json:"ssid"`
+		Passphrase string `json:"passphrase"`
+		Priority   int    `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := sessionFrom(r).AddWiFiProfile(body.SSID, body.Passphrase, body.Priority); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleDeleteWiFi(w http.ResponseWriter, r *http.Request) {
+	if err := sessionFrom(r).DeleteWiFiProfile(chi.URLParam(r, "instanceId")); err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {
 	nics, err := sessionFrom(r).Network()
 	if err != nil {
