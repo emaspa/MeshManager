@@ -46,6 +46,7 @@ interface KvmRegion {
   candidate: boolean; // repeated + periodic -> worth hashing
   detected: boolean; // settled into a 2-state blink
   rejected: boolean; // too many distinct images -> real content, give up
+  native: boolean; // locked on its own (high-diff) merit, not via a neighbor
   miss: number; // consecutive post-lock updates of unknown content
   keepSig: number | null; // signature of the phase we display
   // signature -> stats for that phase (occurrences, luma variance, last clean bitmap)
@@ -496,7 +497,7 @@ export class AmtKvmClient {
     const now = Date.now();
     let r = this.regions.get(key);
     if (!r) {
-      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, rejected: false, miss: 0, keepSig: null, sigs: new Map() };
+      r = { count: 0, last: 0, intervals: [], candidate: false, detected: false, rejected: false, native: false, miss: 0, keepSig: null, sigs: new Map() };
       this.regions.set(key, r);
     }
     r.count++;
@@ -560,11 +561,15 @@ export class AmtKvmClient {
       const top = [...r.sigs.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 2);
       if (top[0][1].n >= 2 && top[1][1].n >= 2) {
         const frac = this.diffFraction(top[0][1].img!, top[1][1].img!);
-        // A tile touching an already-locked tile is part of the same icon, so a
-        // tiny blinking sliver (the icon's edge spilling into it) is enough.
-        const minDiff = this.hasDetectedNeighbor(x, y, w, h) ? 0.004 : 0.02;
+        // A tile touching a genuine (native) lock is part of the same icon, so a
+        // tiny blinking sliver (the icon's edge spilling into it) is enough. Only
+        // native locks seed neighbors, so a sliver cannot chain a flood-fill
+        // across the screen.
+        const nativeMin = 0.06;
+        const minDiff = this.hasNativeNeighbor(x, y, w, h) ? 0.004 : nativeMin;
         if (frac >= minDiff) {
           r.detected = true;
+          r.native = frac >= nativeMin;
           // Keep the calmer (lower variance) phase: the plain desktop behind
           // the busier overlay icon. The swap button fixes a wrong guess.
           r.keepSig = top[0][1].variance <= top[1][1].variance ? top[0][0] : top[1][0];
@@ -617,12 +622,13 @@ export class AmtKvmClient {
     return mn >= 80 && mx <= 4000 && mx <= mn * 5;
   }
 
-  /** True if a tile abutting this one has already locked onto the indicator. */
-  private hasDetectedNeighbor(x: number, y: number, w: number, h: number): boolean {
+  /** True if a tile abutting this one is a genuine (native) indicator lock. */
+  private hasNativeNeighbor(x: number, y: number, w: number, h: number): boolean {
     const keys = [`${x - w},${y}`, `${x + w},${y}`, `${x},${y - h}`, `${x},${y + h}`,
       `${x - 64},${y}`, `${x + 64},${y}`, `${x},${y - 64}`, `${x},${y + 64}`];
     for (const k of keys) {
-      if (this.regions.get(k)?.detected) return true;
+      const n = this.regions.get(k);
+      if (n?.detected && n.native) return true;
     }
     return false;
   }
