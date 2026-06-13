@@ -111,7 +111,7 @@ func (s *Session) Hardware() (Hardware, error) {
 						MaxClockMHz:  p.MaxClockSpeed,
 						CurrentClock: p.CurrentClockSpeed,
 						Stepping:     p.Stepping,
-						Status:       p.HealthState.String(),
+						Status:       p.CPUStatus.String(),
 					}
 					if idx < len(chips) {
 						pi.Manufacturer = chips[idx].manufacturer
