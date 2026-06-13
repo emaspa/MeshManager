@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { X, Server, Github } from "lucide-react";
+import { X, Server, Github, Coffee } from "lucide-react";
 import { api } from "../lib/api";
 import { useUi } from "../store";
-import { APP_NAME, REPO_URL, openExternal } from "../lib/native";
+import { APP_NAME, REPO_URL, SPONSOR_URL, openExternal } from "../lib/native";
 import { Button } from "../lib/ui";
 
 export function AboutDialog() {
@@ -43,6 +43,13 @@ export function AboutDialog() {
             className="mt-2 text-xs text-(--color-muted) underline decoration-dotted underline-offset-2 hover:text-(--color-text)"
           >
             {REPO_URL.replace("https://", "")}
+          </button>
+
+          <button
+            onClick={() => openExternal(SPONSOR_URL)}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-(--color-muted) hover:text-(--color-text)"
+          >
+            <Coffee className="h-3.5 w-3.5" /> Buy me a coffee
           </button>
 
           <p className="mt-4 border-t border-(--color-border) pt-3 text-[11px] leading-relaxed text-(--color-muted)">

@@ -60,11 +60,6 @@ jobs:
             goarch: amd64
             ext: ".exe"
             args: ""
-          - platform: macos-13
-            triple: x86_64-apple-darwin
-            goos: darwin
-            goarch: amd64
-            args: "--target x86_64-apple-darwin"
           - platform: macos-14
             triple: aarch64-apple-darwin
             goos: darwin
@@ -142,7 +137,7 @@ jobs:
 
             - Windows: `-setup.exe` (NSIS installer), `.msi`, or the portable `.exe`
             - Linux: `.deb`, `.rpm`, or `.AppImage` (portable)
-            - macOS: `.dmg` (Apple Silicon `aarch64`, Intel `x86_64`)
+            - macOS: `.dmg` (Apple Silicon `aarch64`)
 
             Installers are unsigned. Windows SmartScreen and macOS Gatekeeper will
             warn on first run.

@@ -2,6 +2,7 @@
 
 export const APP_NAME = "MeshManager";
 export const REPO_URL = "https://github.com/emaspa/meshmanager";
+export const SPONSOR_URL = "https://buymeacoffee.com/emaspa";
 
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
