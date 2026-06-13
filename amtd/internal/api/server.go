@@ -49,6 +49,8 @@ func (s *Server) Router() http.Handler {
 		r.Post("/boot", s.handleBoot)
 		r.Get("/hardware", s.handleHardware)
 		r.Get("/network", s.handleNetwork)
+		r.Get("/browse/classes", s.handleBrowseClasses)
+		r.Get("/browse", s.handleBrowse)
 		r.Get("/accounts", s.handleAccounts)
 		r.Post("/accounts", s.handleAddAccount)
 		r.Post("/accounts/{handle}", s.handleAccountAction)

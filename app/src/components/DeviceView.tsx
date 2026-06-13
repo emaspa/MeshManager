@@ -14,6 +14,7 @@ import {
   Network,
   Disc,
   Users,
+  Braces,
 } from "lucide-react";
 import { api, type PowerAction } from "../lib/api";
 import { useUi } from "../store";
@@ -27,6 +28,7 @@ import { SerialTab } from "./tabs/SerialTab";
 import { KvmTab } from "./tabs/KvmTab";
 import { IderTab } from "./tabs/IderTab";
 import { AccountsTab } from "./tabs/AccountsTab";
+import { WsmanTab } from "./tabs/WsmanTab";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -38,6 +40,7 @@ const TABS = [
   { id: "serial", label: "Serial", icon: TerminalSquare },
   { id: "kvm", label: "Remote Desktop", icon: MonitorSmartphone },
   { id: "ider", label: "Boot Media", icon: Disc },
+  { id: "wsman", label: "WS-MAN", icon: Braces },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -193,6 +196,7 @@ export function DeviceView({ id }: { id: string }) {
         {tab === "serial" && <SerialTab id={id} />}
         {tab === "kvm" && <KvmTab id={id} />}
         {tab === "ider" && <IderTab id={id} />}
+        {tab === "wsman" && <WsmanTab id={id} />}
       </div>
     </div>
   );

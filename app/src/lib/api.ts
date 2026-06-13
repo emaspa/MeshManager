@@ -188,6 +188,9 @@ export const api = {
     }),
   hardware: (id: string) => req<Hardware>(`/api/devices/${id}/hardware`),
   network: (id: string) => req<NetworkInterface[]>(`/api/devices/${id}/network`),
+  browseClasses: (id: string) => req<string[]>(`/api/devices/${id}/browse/classes`),
+  browse: (id: string, className: string) =>
+    req<unknown>(`/api/devices/${id}/browse?class=${encodeURIComponent(className)}`),
   accounts: (id: string) => req<Account[]>(`/api/devices/${id}/accounts`),
   addAccount: (
     id: string,

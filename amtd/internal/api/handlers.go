@@ -196,6 +196,24 @@ func (s *Server) handleAccountAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s *Server) handleBrowseClasses(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, sessionFrom(r).BrowseClasses())
+}
+
+func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
+	class := r.URL.Query().Get("class")
+	if class == "" {
+		writeError(w, http.StatusBadRequest, "class query param is required")
+		return
+	}
+	result, err := sessionFrom(r).Browse(class)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {
 	nics, err := sessionFrom(r).Network()
 	if err != nil {
