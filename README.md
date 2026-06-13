@@ -139,7 +139,9 @@ Windows produces installers plus a portable executable:
 
 - `bundle/nsis/MeshManager_<version>_x64-setup.exe` (installer)
 - `bundle/msi/MeshManager_<version>_x64_en-US.msi` (MSI)
-- `meshmanager.exe` (portable, runs without installing)
+- `meshmanager.exe` plus the `amtd-*.exe` sidecar next to it (portable, runs
+  without installing; keep the two files together). GitHub releases ship this
+  pair as `MeshManager_<version>_x64-portable.zip`.
 
 Linux produces:
 

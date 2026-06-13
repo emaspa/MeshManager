@@ -135,7 +135,7 @@ jobs:
 
             Desktop packages are attached below.
 
-            - Windows: `-setup.exe` (NSIS installer), `.msi`, or the portable `.exe`
+            - Windows: `-setup.exe` (NSIS installer), `.msi`, or the portable `.zip` (extract and run, no install)
             - Linux: `.deb`, `.rpm`, or `.AppImage` (portable)
             - macOS: `.dmg` (Apple Silicon `aarch64`)
 
@@ -144,3 +144,27 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # tauri-action only publishes the installers (NSIS/MSI). Ship a portable
+      # ZIP too: the main exe plus the amtd sidecar it spawns at runtime, in the
+      # same layout target/release already uses (so the exe finds the sidecar).
+      - name: Attach portable Windows zip
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $rel = "app/src-tauri/target/release"
+          $runtime = Get-ChildItem -Path $rel -File |
+            Where-Object { $_.Extension -in '.exe', '.dll' }
+          $mainExe = $runtime |
+            Where-Object { $_.Extension -eq '.exe' -and $_.Name -notlike 'amtd-*' }
+          $sidecar = $runtime | Where-Object { $_.Name -like 'amtd-*.exe' }
+          if (-not $mainExe) { Write-Error "main exe not found in $rel"; exit 1 }
+          if (-not $sidecar) { Write-Error "amtd sidecar not found in $rel"; exit 1 }
+          New-Item -ItemType Directory -Force portable | Out-Null
+          $runtime | ForEach-Object { Copy-Item $_.FullName portable }
+          $version = "${{ needs.prepare.outputs.version }}"
+          $dest = "MeshManager_${version}_x64-portable.zip"
+          Compress-Archive -Path "portable/*" -DestinationPath $dest -Force
+          gh release upload "v$version" $dest --clobber
