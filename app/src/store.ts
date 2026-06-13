@@ -4,6 +4,7 @@ export interface ConnectPrefill {
   bookmarkId?: string; // set when editing/connecting an existing bookmark
   edit?: boolean; // true = manage bookmark (Save), false/undefined = connect
   name?: string;
+  group?: string;
   host?: string;
   port?: number;
   tls?: boolean;

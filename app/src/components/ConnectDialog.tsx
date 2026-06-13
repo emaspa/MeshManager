@@ -17,6 +17,7 @@ export function ConnectDialog() {
 
   const [form, setForm] = useState({
     name: prefill?.name ?? "",
+    group: prefill?.group ?? "",
     host: prefill?.host ?? "",
     port: prefill?.port as number | undefined,
     username: prefill?.username ?? "admin",
@@ -32,6 +33,7 @@ export function ConnectDialog() {
   function saveBookmark() {
     bookmarks.upsert({
       name: form.name,
+      group: form.group,
       host: form.host,
       port: form.port,
       tls: form.tls,
@@ -46,6 +48,7 @@ export function ConnectDialog() {
     if (prefill?.bookmarkId) {
       bookmarks.update(prefill.bookmarkId, {
         name: form.name,
+        group: form.group,
         host: form.host,
         port: form.port,
         tls: form.tls,
@@ -87,9 +90,14 @@ export function ConnectDialog() {
             else connect.mutate();
           }}
         >
-          <Field label="Name (optional)">
-            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Lab PC #1" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Name (optional)">
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Lab PC #1" />
+            </Field>
+            <Field label="Group (optional)">
+              <Input value={form.group} onChange={(e) => set("group", e.target.value)} placeholder="Lab" />
+            </Field>
+          </div>
           <div className="grid grid-cols-[1fr_110px] gap-3">
             <Field label="Host / IP">
               <Input

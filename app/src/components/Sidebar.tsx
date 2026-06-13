@@ -7,9 +7,20 @@ import { useBookmarks, effectivePort, type Bookmark } from "../lib/bookmarks";
 import { isTauri, openLogs } from "../lib/native";
 import { Button } from "../lib/ui";
 
+// Groups bookmarks by their group name: ungrouped first (key ""), then named
+// groups alphabetically.
+function groupOrder(bookmarks: Bookmark[]): [string, Bookmark[]][] {
+  const map = new Map<string, Bookmark[]>();
+  for (const b of bookmarks) {
+    const key = b.group?.trim() || "";
+    (map.get(key) ?? map.set(key, []).get(key)!).push(b);
+  }
+  return [...map.entries()].sort(([a], [b]) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)));
+}
+
 export function Sidebar() {
   const { selectedId, select, openConnect, setDiscoverOpen, setAboutOpen } = useUi();
-  const { bookmarks, remove } = useBookmarks();
+  const { bookmarks, remove, update } = useBookmarks();
   const qc = useQueryClient();
 
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 5000 });
@@ -34,7 +45,8 @@ export function Sidebar() {
         insecure: b.insecure,
         name: b.name,
       }),
-    onSuccess: (device) => {
+    onSuccess: (device, b) => {
+      update(b.id, { lastConnected: Date.now() });
       qc.invalidateQueries({ queryKey: ["devices"] });
       select(device.id);
     },
@@ -87,56 +99,65 @@ export function Sidebar() {
             No saved devices. Click + to add one.
           </div>
         )}
-        {bookmarks.map((b) => {
-          const session = sessionFor(b);
-          const connected = !!session;
-          const active = connected && session!.id === selectedId;
-          const busy = connect.isPending && connect.variables?.id === b.id;
-          return (
-            <div
-              key={b.id}
-              className={clsx(
-                "group mb-1 flex items-center rounded-md px-2 py-2 transition-colors",
-                active ? "bg-(--color-accent)/15" : "hover:bg-(--color-panel-2)",
-              )}
-            >
-              <button onClick={() => openBookmark(b)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                <span
-                  className={clsx(
-                    "h-2 w-2 shrink-0 rounded-full",
-                    connected ? "bg-(--color-good)" : "bg-(--color-muted)/50",
-                  )}
-                  title={connected ? "Connected" : "Disconnected"}
-                />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">{b.name || b.host}</span>
-                  <span className="block truncate text-xs text-(--color-muted)">
-                    {b.host}:{effectivePort(b)} {b.tls ? "· TLS" : ""} {busy ? "· connecting…" : ""}
-                  </span>
-                </span>
-              </button>
-              <div className="ml-1 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  onClick={() => editBookmark(b)}
-                  title="Edit bookmark"
-                  className="rounded p-1 text-(--color-muted) hover:bg-(--color-border) hover:text-(--color-text)"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => {
-                    if (active) select(null);
-                    remove(b.id);
-                  }}
-                  title="Remove bookmark"
-                  className="rounded p-1 text-(--color-muted) hover:bg-(--color-border) hover:text-(--color-bad)"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+        {groupOrder(bookmarks).map(([groupName, items]) => (
+          <div key={groupName || "_"}>
+            {groupName && (
+              <div className="mt-2 px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-(--color-muted)">
+                {groupName}
               </div>
-            </div>
-          );
-        })}
+            )}
+            {items.map((b) => {
+              const session = sessionFor(b);
+              const connected = !!session;
+              const active = connected && session!.id === selectedId;
+              const busy = connect.isPending && connect.variables?.id === b.id;
+              return (
+                <div
+                  key={b.id}
+                  className={clsx(
+                    "group mb-1 flex items-center rounded-md px-2 py-2 transition-colors",
+                    active ? "bg-(--color-accent)/15" : "hover:bg-(--color-panel-2)",
+                  )}
+                >
+                  <button onClick={() => openBookmark(b)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                    <span
+                      className={clsx(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        connected ? "bg-(--color-good)" : "bg-(--color-muted)/50",
+                      )}
+                      title={connected ? "Connected" : "Disconnected"}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{b.name || b.host}</span>
+                      <span className="block truncate text-xs text-(--color-muted)">
+                        {b.host}:{effectivePort(b)} {b.tls ? "· TLS" : ""} {busy ? "· connecting…" : ""}
+                      </span>
+                    </span>
+                  </button>
+                  <div className="ml-1 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => editBookmark(b)}
+                      title="Edit bookmark"
+                      className="rounded p-1 text-(--color-muted) hover:bg-(--color-border) hover:text-(--color-text)"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (active) select(null);
+                        remove(b.id);
+                      }}
+                      title="Remove bookmark"
+                      className="rounded p-1 text-(--color-muted) hover:bg-(--color-border) hover:text-(--color-bad)"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center justify-between border-t border-(--color-border) px-4 py-2 text-xs text-(--color-muted)">

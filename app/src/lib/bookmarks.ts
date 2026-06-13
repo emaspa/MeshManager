@@ -6,12 +6,14 @@ import { persist } from "zustand/middleware";
 export interface Bookmark {
   id: string;
   name: string;
+  group?: string;
   host: string;
   port?: number;
   tls: boolean;
   insecure: boolean;
   username: string;
   password?: string;
+  lastConnected?: number; // epoch ms
 }
 
 interface BookmarkState {
