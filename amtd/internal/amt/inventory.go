@@ -161,12 +161,25 @@ func (s *Session) Hardware() (Hardware, error) {
 
 		// Storage model + serial come from CIM_PhysicalPackage, paired with
 		// CIM_MediaAccessDevice at index+1 (package[0] is the system enclosure).
+		// AMT paginates enumerations, so pull every batch: this list (enclosure +
+		// disks + battery + ...) can span multiple pulls and a single pull would
+		// drop later disks.
 		var pkgs []struct{ model, serial string }
 		if enum, err := m.CIM.PhysicalPackage.Enumerate(); err == nil {
-			if pull, err := m.CIM.PhysicalPackage.Pull(enum.Body.EnumerateResponse.EnumerationContext); err == nil {
+			ctx := enum.Body.EnumerateResponse.EnumerationContext
+			for range 32 { // hard cap to avoid any pathological loop
+				pull, err := m.CIM.PhysicalPackage.Pull(ctx)
+				if err != nil {
+					break
+				}
 				for _, p := range pull.Body.PullResponse.PhysicalPackage {
 					pkgs = append(pkgs, struct{ model, serial string }{p.Model, p.SerialNumber})
 				}
+				next := pull.Body.PullResponse.EnumerationContext
+				if pull.Body.PullResponse.EndOfSequence.Local != "" || next == "" || next == ctx {
+					break
+				}
+				ctx = next
 			}
 		}
 
