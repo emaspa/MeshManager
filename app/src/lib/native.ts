@@ -1,7 +1,7 @@
 // Thin bridge to Tauri commands with graceful no-ops in browser dev mode.
 
 export const APP_NAME = "MeshManager";
-export const REPO_URL = "https://github.com/emaspa/meshmanager";
+export const REPO_URL = "https://github.com/emaspa/MeshManager";
 export const SPONSOR_URL = "https://buymeacoffee.com/emaspa";
 
 export function isTauri(): boolean {

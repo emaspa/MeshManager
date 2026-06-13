@@ -1,6 +1,6 @@
 # MeshManager
 
-[![Release](https://img.shields.io/github/v/release/emaspa/meshmanager)](https://github.com/emaspa/meshmanager/releases/latest)
+[![Release](https://img.shields.io/github/v/release/emaspa/MeshManager)](https://github.com/emaspa/MeshManager/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
