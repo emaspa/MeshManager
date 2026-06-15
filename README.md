@@ -163,7 +163,7 @@ macOS produces (named for the host architecture):
 Builds are currently unsigned, so Windows SmartScreen warns on first run
 ("More info" then "Run anyway"). On macOS, Gatekeeper blocks the unsigned app on
 first launch: right-click it and choose Open, or clear the quarantine flag with
-`xattr -dr /Applications/com.apple.quarantine MeshManager.app`.
+`xattr -dr com.apple.quarantine /Applications/MeshManager.app`.
 
 ### Develop the desktop app
 
