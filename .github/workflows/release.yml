@@ -66,6 +66,17 @@ jobs:
             goarch: arm64
             args: "--target aarch64-apple-darwin"
     runs-on: ${{ matrix.platform }}
+    # Azure Trusted Signing credentials for the Windows build. Mapped at the job
+    # level so steps can gate on their presence; signing is skipped (builds stay
+    # unsigned) when these aren't configured. Secrets hold the service-principal
+    # auth; vars hold the non-secret endpoint/account/profile.
+    env:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TS_ENDPOINT: ${{ vars.AZURE_TS_ENDPOINT }}
+      AZURE_TS_ACCOUNT: ${{ vars.AZURE_TS_ACCOUNT }}
+      AZURE_TS_PROFILE: ${{ vars.AZURE_TS_PROFILE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -117,6 +128,25 @@ jobs:
       - name: Install frontend dependencies
         working-directory: app
         run: npm ci
+
+      # Enable Azure Trusted Signing only when the secrets are present. Installs
+      # the signer and points Tauri's bundler at it via signCommand, so the main
+      # exe (before packaging) and the NSIS/MSI installers are all signed.
+      # trusted-signing-cli authenticates from the AZURE_* env set on the job.
+      - name: Configure Windows code signing (Azure Trusted Signing)
+        if: matrix.goos == 'windows' && env.AZURE_CLIENT_ID != ''
+        shell: bash
+        run: |
+          cargo install trusted-signing-cli --locked
+          node -e '
+            const fs = require("fs");
+            const f = "app/src-tauri/tauri.conf.json";
+            const j = JSON.parse(fs.readFileSync(f, "utf8"));
+            const cmd = `trusted-signing-cli -e ${process.env.AZURE_TS_ENDPOINT} -a ${process.env.AZURE_TS_ACCOUNT} -c ${process.env.AZURE_TS_PROFILE} %1`;
+            j.bundle.windows = { ...(j.bundle.windows || {}), signCommand: cmd };
+            fs.writeFileSync(f, JSON.stringify(j, null, 2) + "\n");
+            console.log("signCommand set:", cmd);
+          '
 
       - name: Build and publish desktop bundles
         uses: tauri-apps/tauri-action@v0
@@ -176,6 +206,15 @@ jobs:
           }
           if (-not $sc) { Write-Error "amtd sidecar not found"; exit 1 }
           Copy-Item $sc.FullName (Join-Path portable "amtd.exe")
+
+          # Sign the portable payload when Azure Trusted Signing is configured.
+          # Tauri signs the installers via signCommand, but the sidecar (and the
+          # loose exe in the zip) are signed here so the whole portable is trusted.
+          if ($env:AZURE_CLIENT_ID) {
+            Get-ChildItem portable -Filter *.exe | ForEach-Object {
+              trusted-signing-cli -e $env:AZURE_TS_ENDPOINT -a $env:AZURE_TS_ACCOUNT -c $env:AZURE_TS_PROFILE $_.FullName
+            }
+          }
 
           $version = "${{ needs.prepare.outputs.version }}"
           $dest = "MeshManager_${version}_x64-portable.zip"
